@@ -791,7 +791,7 @@ InternalSec = '192.168.1.'    # 需對應 router 裡的實際設定值
 ```python
 SmtpPort = 587
 SmtpServer = 'smtp.gmail.com'
-GmailSender = 'bolsoclab@boledu.org'
+GmailSender = '<sender-email>'
 GmailPasswd = '<app-password>'
 ```
 
