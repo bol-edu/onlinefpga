@@ -634,29 +634,31 @@ python3 -m pip install <套件名稱>
 
 ### 檔案總覽
 
+````md
 | 檔案 / 目錄 | 描述  |
 | --- | --- |
 | `active_monitord.py` | 激活 monitord 的監控及管理功能 |
-| `config.py` | OnlineFPGA 系統參數定義檔案 |
-| `job_grabber.py` | 支援 batch 功能，使用者提供 Makefile 的 job 列表後，系統自動派送到 HLS 伺服器執行，每個 job 狀態會 email 通知使用者 |
+| `config.py` | OnlineFPGA 系統參數定義檔案（**管理員需設置 PYNQ-Z2 / KV260 / U50 對應代號、ExternalIP、ExternalIPGateway、GmailSender、GmailPasswd**） |
+| `job_grabber.py` | 支援 batch 功能，使用者提供 Makefile 的 job 列表後，系統自動派送到 HLS 伺服器執行，每個 job 狀態會 email 通知使用者（**需有 FPGA 伺服器**） |
 | `list_user.py` | 由資料庫擷取符合指定條件的使用者資料 |
 | `manage_dbuser.py` | 建立（支援 CSV 匯入）/ 刪除資料庫中的使用者資料 |
-| `manage_user.py` | 派送到 HLS 伺服器後，可建立 / 刪除指定使用者帳戶 |
+| `manage_user.py` | 派送到 HLS 伺服器後，可建立 / 刪除指定使用者帳戶（**需有 FPGA 伺服器**） |
 | `monitord.py` | OnlineFPGA 系統監控及管理主程式 |
-| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面 |
+| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面 （** PYNQ-Z2 / KV260 使用者版本**）|
 | `__pycache__/` | 存放編譯後的 OnlineFPGA 程式 |
 | `registration.csv` | CSV 範例檔案用來批次建立使用者資料 |
 | `reset_pynq.py` | 派送到 PYNQ-Z2 / KV260 用來重啟 Jupyter Notebook 並設置新的登入密碼 |
-| `start_docker_boledudb.sh` | 管理伺服器重啟後備份 MongoDB 資料庫並重啟 Docker |
-| `start_monitord.sh` | 啟動 `active_monitord.py` 及 `monitord.py` |
+| `start_docker_boledudb.sh` | 管理伺服器重啟後備份 MongoDB 資料庫並重啟 Docker（**需設置 sudo 密碼**） |
+| `start_monitord.sh` | 啟動 `active_monitord.py` 及 `monitord.py` （**維護時間預設 06:00-07:00，若異動需同步修改腳本內容**）|
 | `stop_monitord.sh` | 關閉所有 monitord 相關程序 |
-| `sync_db.sh` | 手動備份 MongoDB 資料庫 |
-| `sync_hlsclient.sh` | 手動同步管理伺服器檔案到 HLS01 ~ HLS05 |
-| `sync_onlinefpga.sh` | 手動同步編譯後的 `.pyc` 到使用者目錄 |
-| `u50_rented.log` | HLS01 ~ HLS05 FPGA 伺服器租用紀錄檔案 |
-| `u50_tenant_util.py` | 使用者帳戶工具程式（管理 U50 綁定紀錄與專案帳號） |
+| `sync_db.sh` | 手動備份 MongoDB 資料庫（**需設置 sudo 密碼**） |
+| `sync_hlsclient.sh` | 手動同步管理伺服器檔案到 HLS01 ~ HLS05（**需有 FPGA 伺服器**） |
+| `sync_onlinefpga.sh` | 手動同步編譯後的 `.pyc` 到使用者目錄（**需設置 sudo 密碼**） |
+| `u50_rented.log` | HLS01 ~ HLS05 FPGA 伺服器租用紀錄檔案（**需有 FPGA 伺服器**） |
+| `u50_tenant_util.py` | 使用者帳戶工具程式（管理 U50 綁定紀錄與專案帳號）（**需有 FPGA 伺服器**） |
 | `utility/check_ssh_connection.sh` | 查詢最近的 SSH 連線詳細資料 |
-| `utility/list_subdir_size.sh` | 查詢特定目錄下所有子目錄的使用空間 |
+| `utility/list_subdir_size.sh` | 查詢特定目錄下所有子目錄的使用空間（**需手動輸入 sudo 密碼**） |
+````
 
 **Python3 相依套件：**
 
@@ -761,8 +763,8 @@ Kv260List = ['01', '02', '03', '04', '05', '06', '07', '08', '09']
 ```python
 U50List = ['01', '02', '03', '04', '05', '06']
 U50UserNameList = ['hls01', 'hls02', 'hls03', 'hls04', 'hls05', 'hls06']
-U50UserPassWordList = ['boleduhls01', 'boleduhls02', 'boleduhls03',
-                       'boleduhls04', 'boleduhls05', 'boleduhls06']
+U50UserPassWordList = ['hls01-passwd', 'hls02-passwd', 'hls03-passwd',
+                       'hls04-passwd', 'hls05-passwd', 'hls06-passwd']
 U50BoardAvailable = [1, 1, 1, 1, 1, 1]
 U50Alias = ['', '', '', '', 'vck5k_01', '']
 ```
@@ -853,8 +855,8 @@ PynqResetFile = 'reset_pynq.py'
 
 U50List = ['01', '02', '03', '04', '05']
 U50UserNameList = ['hls01', 'hls02', 'hls03', 'hls04', 'hls05']
-U50UserPassWordList = ['boleduhls01', 'boleduhls02', 'boleduhls03',
-                       'boleduhls04', 'boleduhls05']
+U50UserPassWordList = ['hls01-passwd', 'hls02-passwd', 'hls03-passwd',
+                       'hls04-passwd', 'hls05-passwd']
 U50BoardAvailable = [1, 1, 1, 1, 1]
 U50Alias = ['', '', '', '', 'vck5k_01']
 U50UserLimit = 1
@@ -871,7 +873,7 @@ NcCommand = 'nc -w 5'
 ExternalIP = '<external_ip1>'
 ExternalIPGateway = '<external_gateway1>'
 ExternalIPBak = '<external_ip2>'
-ExternalIPBakGateway = '2<external_gateway2>'
+ExternalIPBakGateway = '<external_gateway2>'
 InternalSec = '192.168.1.'
 DefaultSSHPort = 22
 MonitordInLab = True
@@ -886,7 +888,7 @@ MonitordReturnRequest = 'http://' + MonitordIP + ':' + str(MonitordPort) + '/fpg
 VaildCodeLength = 6
 SmtpPort = 587
 SmtpServer = 'smtp.gmail.com'
-GmailSender = 'bolsoclab@boledu.org'
+GmailSender = '<sender-email>'
 GmailPasswd = '<app-password>'
 ServiceStop = '06:00'
 ServiceStart = '07:00'
