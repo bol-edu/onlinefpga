@@ -637,7 +637,7 @@ python3 -m pip install <套件名稱>
 | 檔案 / 目錄 | 描述  |
 | --- | --- |
 | `active_monitord.py` | 激活 monitord 的監控及管理功能 |
-| `config.py` | OnlineFPGA 系統參數定義檔案（**管理員需設置 PYNQ-Z2 / KV260 / U50 對應代號、ExternalIP、ExternalIPGateway、GmailSender、GmailPasswd**） |
+| `config.py` | OnlineFPGA 系統參數定義檔案（**需設置 PYNQ-Z2 / KV260 / U50 對應代號、ExternalIP、ExternalIPGateway、GmailSender、GmailPasswd**） |
 | `job_grabber.py` | 支援 batch 功能，使用者提供 Makefile 的 job 列表後，系統自動派送到 HLS 伺服器執行，每個 job 狀態會 email 通知使用者（**需有 FPGA 伺服器**） |
 | `list_user.py` | 由資料庫擷取符合指定條件的使用者資料 |
 | `manage_dbuser.py` | 建立（支援 CSV 匯入）/ 刪除資料庫中的使用者資料 |
