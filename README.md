@@ -453,10 +453,12 @@ chmod o=rw /dev/dri/render*
 sudo mkdir -p /opt/labManageKit
 ```
 
-將管理伺服器上的 `manage_user.py` 及 `job_grabber.py` 複製到各 FPGA 伺服器的 `/opt/labManageKit/` 目錄。
+將管理伺服器上的 `config.py`、`manage_user.py`、`job_grabber.py` 及 `u50_tenant_util.py` 複製到各 FPGA 伺服器的 `/opt/labManageKit/` 目錄。
 
 - 管理伺服器會透過 FPGA 伺服器上的 `manage_user.py` 建立使用者帳戶
 - 管理伺服器會透過 FPGA 伺服器上的 `job_grabber.py` 配置背景批次工作
+- `config.py` 提供 FPGA 伺服器所需的系統參數
+- `u50_tenant_util.py` 的 `list` 及 `del` 指令需在各 FPGA 伺服器上直接執行，用於查詢及刪除該伺服器上的 U50 專案帳號
 
 > 後續可使用 `sync_hlsclient.sh` 腳本批次同步上述檔案到所有 FPGA 伺服器。
 
@@ -574,8 +576,6 @@ echo -e "${Yellow}#        ${Blue}Renting OnlineFPGA from service menu        ${
 echo -e "${Yellow}#                                                    #"
 echo -e "${Yellow}#       ${Magenta}Shutdown: TPE(UTC+8) 6:00am to 7:00am        ${Yellow}#"
 echo -e "${Yellow}#                                                    #"
-echo -e "${Yellow}#            ${Red}email: onlinefpga@gmail.com             ${Yellow}#"
-echo -e "${Yellow}#                                                    #"
 echo -e "${Yellow}######################################################"
 echo -e "${Reset}\n"
 
@@ -616,7 +616,7 @@ echo "synchronize config.pyc onlinefpga.pyc to OnlineFPGA boleduuser"
 
 | 帳號  | 密碼  | 連線位置 | 可見設備 |
 | --- | --- | --- | --- |
-| `boleduuser` | `boleduuser` | `<external_ip>:1000` | 所有設備（PYNQ-Z2 / KV260 / U50 / VCK5K） |
+| `boleduuser` | `boleduuser` | `<external_ip>:1000` | 所有設備（PYNQ-Z2 / KV260 / U50） |
 | `boledupynq` | `boledupynq` | `<external_ip>:1000` | 僅 PYNQ-Z2 及 KV260 |
 
 > **客製化選單：** 若要修改使用者可見設備，需修改 `onlinefpga.py` 再重新編譯後，執行 `sync_onlinefpga.sh` 複製到對應的使用者目錄，並修改該使用者的 `.bashrc`。
@@ -637,7 +637,7 @@ python3 -m pip install <套件名稱>
 | 檔案 / 目錄 | 描述  |
 | --- | --- |
 | `active_monitord.py` | 激活 monitord 的監控及管理功能 |
-| `config.py` | OnlineFPGA 系統參數定義檔案（**需設置 PYNQ-Z2 / KV260 / U50 對應代號、ExternalIP、ExternalIPGateway、GmailSender、GmailPasswd**） |
+| `config.py` | OnlineFPGA 系統參數定義檔案（**需設置 PYNQ-Z2 / KV260 / U50 對應代號、ExternalIP、ExternalIPGateway、GmailSender、GmailPasswd、OnlineFPGAUserManual**） |
 | `job_grabber.py` | 支援 batch 功能，使用者提供 Makefile 的 job 列表後，系統自動派送到 HLS 伺服器執行，每個 job 狀態會 email 通知使用者（**需有 FPGA 伺服器**） |
 | `list_user.py` | 由資料庫擷取符合指定條件的使用者資料 |
 | `manage_dbuser.py` | 建立（支援 CSV 匯入）/ 刪除資料庫中的使用者資料 |
@@ -646,7 +646,7 @@ python3 -m pip install <套件名稱>
 | `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面 （**PYNQ-Z2 / KV260 使用者選單版本**）|
 | `__pycache__/` | 存放編譯後的 OnlineFPGA 程式 |
 | `registration.csv` | CSV 範例檔案用來批次建立使用者資料 |
-| `reset_pynq.py` | 派送到 PYNQ-Z2 / KV260 用來重啟 Jupyter Notebook 並設置新的登入密碼 |
+| `reset_pynq.py` | 派送到 PYNQ-Z2 / KV260 用來重啟 Jupyter Notebook 並設置新的登入密碼（**需修改程式碼，若不是PYNQ 2.7版**） |
 | `start_docker_boledudb.sh` | 管理伺服器重啟後備份 MongoDB 資料庫並重啟 Docker（**需設置 sudo 密碼**） |
 | `start_monitord.sh` | 啟動 `active_monitord.py` 及 `monitord.py` （**維護時間預設 06:00-07:00，若異動需同步修改腳本內容**）|
 | `stop_monitord.sh` | 關閉所有 monitord 相關程序 |
@@ -891,6 +891,7 @@ GmailPasswd = '<app-password>'
 ServiceStop = '06:00'
 ServiceStart = '07:00'
 FindPTSCommand = "ps -ef | grep -E 'ssh.*pts' | grep -v grep | awk -F\" \" '{print $2}'"
+OnlineFPGAUserManual = '<google_drive_file_url>'
 
 #######################################################################
 # manage_user
@@ -904,7 +905,6 @@ ChangeDirPycFile = './.changedir.pyc'
 #######################################################################
 # manage_dbuser
 #######################################################################
-OnlineFPGAUserManual = 'https://drive.google.com/file/d/1Vx0e3m9EviOuqPVhowYVbgVunZxD828i/'
 
 #######################################################################
 # job_grabber
