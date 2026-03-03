@@ -634,7 +634,6 @@ python3 -m pip install <套件名稱>
 
 ### 檔案總覽
 
-````md
 | 檔案 / 目錄 | 描述  |
 | --- | --- |
 | `active_monitord.py` | 激活 monitord 的監控及管理功能 |
@@ -644,7 +643,7 @@ python3 -m pip install <套件名稱>
 | `manage_dbuser.py` | 建立（支援 CSV 匯入）/ 刪除資料庫中的使用者資料 |
 | `manage_user.py` | 派送到 HLS 伺服器後，可建立 / 刪除指定使用者帳戶（**需有 FPGA 伺服器**） |
 | `monitord.py` | OnlineFPGA 系統監控及管理主程式 |
-| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面 （** PYNQ-Z2 / KV260 使用者版本**）|
+| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面 （**PYNQ-Z2 / KV260 使用者選單版本**）|
 | `__pycache__/` | 存放編譯後的 OnlineFPGA 程式 |
 | `registration.csv` | CSV 範例檔案用來批次建立使用者資料 |
 | `reset_pynq.py` | 派送到 PYNQ-Z2 / KV260 用來重啟 Jupyter Notebook 並設置新的登入密碼 |
@@ -658,7 +657,6 @@ python3 -m pip install <套件名稱>
 | `u50_tenant_util.py` | 使用者帳戶工具程式（管理 U50 綁定紀錄與專案帳號）（**需有 FPGA 伺服器**） |
 | `utility/check_ssh_connection.sh` | 查詢最近的 SSH 連線詳細資料 |
 | `utility/list_subdir_size.sh` | 查詢特定目錄下所有子目錄的使用空間（**需手動輸入 sudo 密碼**） |
-````
 
 **Python3 相依套件：**
 
