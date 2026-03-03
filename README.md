@@ -625,12 +625,7 @@ echo "synchronize config.pyc onlinefpga.pyc to OnlineFPGA boleduuser"
 
 ## 3-5. OnlineFPGA 管理系統程式
 
-OnlineFPGA 管理系統開發程式為 Python 3.8，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python3 相依套件需透過 pip 安裝：
-
-```bash
-sudo apt install python3-pip
-python3 -m pip install <套件名稱>
-```
+OnlineFPGA 管理系統開發程式為 Python 3.8，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python3 相依套件需透過 PIP 工具，安裝 PIP 的指令為`sudo apt install python3-pip`。
 
 ### 檔案總覽
 
@@ -660,13 +655,22 @@ python3 -m pip install <套件名稱>
 
 **Python3 相依套件：**
 
+使用`python3 -m pip install <套件名稱>`安裝
+
 | 套件  | 使用檔案 |
 | --- | --- |
 | `apscheduler` | `active_monitord.py` |
 | `pymongo` | `list_user.py`、`manage_dbuser.py`、`monitord.py`、`onlinefpga.py` |
 | `email_validator` | `manage_dbuser.py`、`onlinefpga.py` |
 | `flask` | `monitord.py` |
-| `sshpass`（Ubuntu 套件） | `sync_hlsclient.sh`（`sudo apt install sshpass`） |
+
+**Ubuntu 相依套件：**
+
+使用`sudo apt install <套件名稱>`安裝
+
+| 套件  | 使用檔案 |
+| --- | --- |
+| `sshpass` | `sync_hlsclient.sh` |
 
 > **權限設定：** 執行 `sudo chmod +x /opt/labManageKit/*.sh` 使所有 sh 檔案可以直接執行。`/opt/labManageKit` 目錄下有異動檔案時需要 `sudo` 權限。
 
@@ -1055,15 +1059,15 @@ HLS01 ~ HLS05 FPGA 伺服器租用紀錄檔案範例：
 ```bash
 python3 u50_tenant_util.py list              # 查詢 HLS01~HLS05 上的 U50 專案帳號
 python3 u50_tenant_util.py checkdb           # 檢查是否有不一致的 U50 綁定紀錄
-python3 u50_tenant_util.py del all           # 在各 HLS 伺服器上刪除所有 U50 專案帳號及對應目錄
-python3 u50_tenant_util.py del <account>     # 在各 HLS 伺服器上刪除指定 U50 專案帳號及對應目錄
+python3 u50_tenant_util.py del all           # 在各 FPGA 伺服器上刪除所有 U50 專案帳號及對應目錄
+python3 u50_tenant_util.py del <account>     # 在各 FPGA 伺服器上刪除指定 U50 專案帳號及對應目錄
 python3 u50_tenant_util.py deldb all         # 在管理伺服器上刪除所有使用者 U50 綁定紀錄
 python3 u50_tenant_util.py deldb <account>   # 在管理伺服器上刪除指定使用者 U50 綁定紀錄
 ```
 
 **典型使用情境：** 學期結束或專案結束時，管理者需清理 FPGA 伺服器上的專案空間：
 
-1. 在各 HLS 伺服器上執行 `python3 u50_tenant_util.py del all` 刪除專案帳號及對應目錄
+1. 在各 FPGA 伺服器上執行 `python3 u50_tenant_util.py del all` 刪除專案帳號及對應目錄
 2. 在管理伺服器上執行 `python3 u50_tenant_util.py deldb all` 刪除 U50 綁定紀錄
 
 > **注意：** 刪除所有專案帳號時，若專案檔案數多會需較多時間，請不要中斷執行。完成後可透過 `grep 03. /etc/passwd` 確認帳號是否已移除。
