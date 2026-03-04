@@ -343,7 +343,7 @@ python3 test.py
 
 管理伺服器定期重開機或不預期重開機時，需自動啟動 MongoDB 服務並掛載到原有 DB 資料。
 
-`start_docker_boledudb.sh` 腳本會在每次重開機時先備份最新 MongoDB 資料再重啟服務，若沒有掛載/mnt/LabData/hls00/backupdb/目錄路徑到NAS儲存，請修改為實際備份路徑。
+`start_docker_boledudb.sh` 腳本會在每次重開機時先備份最新 MongoDB 資料再重啟服務。
 
 ```bash
 #!/bin/bash
