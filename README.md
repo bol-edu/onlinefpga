@@ -591,12 +591,9 @@ sudo pip3 install requests pymongo email-validator
 ```
 > **Ubuntu 20.04：** Python 預設版本為 3.8。
 >
-> **Ubuntu 22.04：** Python 預設版本為 3.10，若系統同時安裝多版本 Python，請確認 `python3` 指向正確版本：
-> ```bash
-> python3 --version
-> ```
+> **Ubuntu 22.04：** Python 預設版本為 3.10。
 >
-> **Ubuntu 24.04：** Python 預設版本為 3.12，預設禁止直接使用 `pip3` 安裝系統層套件，會有 `externally-managed-environment` 錯誤，請改用：
+> **Ubuntu 24.04：** Python 預設版本為 3.12，禁止直接使用 `pip3` 安裝系統層套件，會有 `externally-managed-environment` 錯誤，請改用：
 > ```bash
 > sudo pip3 install requests pymongo email-validator --break-system-packages
 > ```
