@@ -364,13 +364,30 @@ sudo cp -i /opt/labManageKit/start_docker_boledudb.sh /bin
 sudo crontab -e
 ```
 
-加入以下排程：
+加入以下排程，每日備份的 DB 資料會以日期為目錄名稱存放於 `/mnt/LabData/hls00/backupdb/`：
 
 ```
 @reboot sh /bin/start_docker_boledudb.sh &
 ```
 
-每日備份的 DB 資料會以日期為目錄名稱存放於 `/mnt/LabData/hls00/backupdb/`。
+另外，為避免備份資料持續累積導致磁碟空間不足，`cleandb.sh` 腳本會保留最近 28 份備份，並自動刪除較舊的備份目錄。
+
+> 若備份路徑不為預設的 `/mnt/LabData/hls00/backupdb/`，請修改腳本中 `BACKUP_DIRS` 的路徑。
+> 若需調整保留天數，請修改 `KEEP_BACKUPS` 的數值。
+
+設置每日 06:25 自動執行：
+
+```bash
+sudo crontab -e
+```
+
+加入以下排程：
+
+```
+25 6 * * * /opt/labManageKit/cleandb.sh
+```
+
+舊備份目錄將依照日期名稱排序後，從最舊的開始刪除，直到剩餘數量符合 `KEEP_BACKUPS` 設定值為止。
 
 ---
 
