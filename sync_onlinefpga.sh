@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 [ -f /home/boleduuser/onlinefpga.pyc ] && echo hls00-passwd | sudo -S chattr -i /home/boleduuser/onlinefpga.pyc
 echo hls00-passwd | sudo -S cp -f __pycache__/onlinefpga.cpython-38.pyc /home/boleduuser/onlinefpga.pyc
 echo hls00-passwd | sudo -S chattr +i /home/boleduuser/onlinefpga.pyc
