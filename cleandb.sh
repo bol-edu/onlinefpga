@@ -2,8 +2,7 @@
 KEEP_BACKUPS=28
 
 BACKUP_DIRS=(
-    "/opt/labManageKit/backupdb"
-    "/mnt/HLSNAS/backupdb"
+    "/mnt/LabData/hls00/backupdb"
 )
 
 for BACKUP_PATH in "${BACKUP_DIRS[@]}"; do
@@ -12,14 +11,13 @@ for BACKUP_PATH in "${BACKUP_DIRS[@]}"; do
         dirs=$(ls -1d [0-9]* | sort | head -n -$((KEEP_BACKUPS - 1)))
         if [ -n "$dirs" ]; then
             for dir in $dirs; do
-                echo "正在刪除 $BACKUP_PATH/$dir"
-                echo boleduhls00 | sudo -S rm -rf "$dir"
+                echo "Deleting $BACKUP_PATH/$dir"
+                echo hls00-passwd | sudo -S rm -rf "$dir"
             done
         else
-            echo "$BACKUP_PATH 無需刪除的備份"
+            echo "No backups to delete in $BACKUP_PATH"
         fi
     else
-        echo "目錄 $BACKUP_PATH 不存在，跳過..."
+        echo "Directory $BACKUP_PATH not found, skipping..."
     fi
 done
-
