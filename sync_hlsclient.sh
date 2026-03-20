@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 sshpass -p "hls01-passwd" scp -P 1100 -o StrictHostKeyChecking=no ./config.py hls01@192.168.1.11:/opt/labManageKit/
 sshpass -p "hls01-passwd" scp -P 1100 -o StrictHostKeyChecking=no ./manage_user.py hls01@192.168.1.11:/opt/labManageKit/
 sshpass -p "hls01-passwd" scp -P 1100 -o StrictHostKeyChecking=no ./job_grabber.py hls01@192.168.1.11:/opt/labManageKit/
