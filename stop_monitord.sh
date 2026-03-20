@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 pkill -f start_monitord.sh
 pkill -f monitord.py
