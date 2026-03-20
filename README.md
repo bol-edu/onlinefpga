@@ -636,7 +636,7 @@ cd /opt/labManageKit
 `sync_onlinefpga.sh` 會將 `config.pyc` 及 `onlinefpga.pyc` 複製到 `/home/boleduuser/`，並使用 `chattr +i` 鎖定檔案防止使用者竄改。若目標檔案已存在則先解除鎖定再覆蓋，不存在則直接複製。**請依實際 Python 版本修改腳本中的 `cpython-38` 為對應版本號（如 `cpython-310`、`cpython-312`）：**
 
 ```bash
-#!/bin/sh
+#!/bin/bash
 [ -f /home/boleduuser/onlinefpga.pyc ] && echo hls00-passwd | sudo -S chattr -i /home/boleduuser/onlinefpga.pyc
 echo hls00-passwd | sudo -S cp -f __pycache__/onlinefpga.cpython-38.pyc /home/boleduuser/onlinefpga.pyc
 echo hls00-passwd | sudo -S chattr +i /home/boleduuser/onlinefpga.pyc
@@ -659,7 +659,7 @@ echo "synchronize config.pyc onlinefpga.pyc to OnlineFPGA boleduuser"
 
 ## 3-5. OnlineFPGA 管理系統程式
 
-OnlineFPGA 管理系統開發程式為 Python 3.8，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python3 相依套件需透過 PIP 工具安裝。
+OnlineFPGA 管理系統開發程式為 Python 3.8，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python3 相依套件需透過 PIP 安裝，請執行`sudo apt install -y python3-pip`。
 
 ### 檔案總覽
 
@@ -1030,7 +1030,7 @@ python3 monitord.py
 關閉所有 monitord 相關程序：
 
 ```bash
-#!/bin/sh
+#!/bin/bash
 pkill -f start_monitord.sh
 pkill -f monitord.py
 pkill -f active_monitord.py
@@ -1043,7 +1043,7 @@ pkill -f active_monitord.py
 手動備份 MongoDB 資料庫到備份目錄：
 
 ```bash
-#!/bin/sh
+#!/bin/bash
 echo hls00-passwd | sudo -S rm -rf "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
 echo hls00-passwd | sudo -S mkdir "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
 echo hls00-passwd | sudo -S cp -rf /mnt/LabData/hls00/boledudb "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
