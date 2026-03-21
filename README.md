@@ -375,6 +375,7 @@ sudo crontab -e
 
 > 若備份路徑不為預設的 `/mnt/LabData/hls00/backupdb/`，請修改腳本中 `BACKUP_DIRS` 的路徑。
 > 若需調整保留天數，請修改 `KEEP_BACKUPS` 的數值。
+> 腳本中的 `hls00-passwd` 為範例密碼，請替換為實際設定的管理伺服器 sudo 密碼。
 
 設置每日 06:25 自動執行：
 
