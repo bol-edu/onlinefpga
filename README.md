@@ -667,7 +667,7 @@ echo "synchronize config.pyc onlinefpga.pyc to OnlineFPGA boleduuser"
 
 ## 3-5. OnlineFPGA 管理系統程式
 
-OnlineFPGA 管理系統開發程式為 Python，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python 相依套件需透過 PIP 安裝，請執行`sudo apt install -y python3-pip`。
+OnlineFPGA 管理系統開發程式為 Python3，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python3 相依套件需透過 PIP 安裝，請執行`sudo apt install -y python3-pip`。
 
 ### 檔案總覽
 
