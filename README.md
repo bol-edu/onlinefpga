@@ -133,8 +133,8 @@ KV260 透過 Jupyter Notebook 服務連線，外部使用者以 `http://<externa
 
 ## 安裝環境
 
-- **已測試 OS：** Ubuntu 20.04.5 / 20.04.6 桌面版
-- **程式語言：** Python 3.8
+- **已測試 OS：** Ubuntu 20.04 / 22.04 / 24.04 桌面版
+- **程式語言：** Python 3.8 以上版本
 - OS 及相依套件版本皆經過 OnlineFPGA 套件的相容性測試，若在不同環境及版本運作，可能會有相容性問題
 - 後續設置範例預設 OnlineFPGA 管理系統套件放置於 `/opt/labManageKit` 目錄（在 `config.py`需要設置此路徑）
 
@@ -149,6 +149,7 @@ KV260 透過 Jupyter Notebook 服務連線，外部使用者以 `http://<externa
 ---
 
 ## 3-1. 管理伺服器設置
+本章節腳本範例中使用 `hls00-passwd` 作為管理伺服器的 sudo 密碼佔位符，實際部署時**務必替換為您自行設定的實際密碼**，並確認腳本中所有出現 `hls00-passwd` 的位置皆已更新。
 
 ### 3-1-1. 安裝 Docker
 
@@ -370,7 +371,7 @@ sudo crontab -e
 @reboot sh /bin/start_docker_boledudb.sh &
 ```
 
-另外，為避免備份資料持續累積導致磁碟空間不足，`cleandb.sh` 腳本會保留最近 28 份備份，並自動刪除較舊的備份目錄。
+另外，為避免備份資料持續累積導致磁碟空間不足，`cleandb.sh` 腳本會保留最近一個月備份，並自動刪除較舊的備份目錄。
 
 > 若備份路徑不為預設的 `/mnt/LabData/hls00/backupdb/`，請修改腳本中 `BACKUP_DIRS` 的路徑。
 > 若需調整保留天數，請修改 `KEEP_BACKUPS` 的數值。
@@ -394,7 +395,7 @@ sudo crontab -e
 ### 3-1-8. 設定管理伺服器每日重啟時間
 
 ```bash
-crontab -e
+sudo crontab -e
 ```
 
 加入以下排程，設定管理伺服器每日固定重啟時間（例如每日 6:30）：
@@ -402,9 +403,6 @@ crontab -e
 ```
 30 6 * * * echo hls00-passwd | sudo -S reboot
 ```
-
-> **注意：** 只需要執行 `crontab -e`，不需要加 `sudo`，因為排程指令中已透過 `echo password | sudo -S` 取得 root 權限來執行 reboot，使用使用者層級的 crontab 即可。目前預設每日維護時間為 **6:00 ~ 7:00**，此時段使用者無法連線租用。
-
 ---
 
 ## 3-2. FPGA 伺服器設置
@@ -582,17 +580,13 @@ sudo usermod -aG sudo boleduuser
 su - boleduuser
 ```
 
-4. 安裝 OnlineFPGA 系統所需的相依套件（Ubuntu 20.04 / 22.04 / 24.04 通用）：
+4. 安裝 OnlineFPGA 系統所需的相依套件（Ubuntu 20.04 / 22.04 / 24.04）：
 
 ```bash
 sudo apt update
 sudo apt install -y python3-pip
 sudo pip3 install requests pymongo email-validator
 ```
-> **Ubuntu 20.04：** Python 預設版本為 3.8。
->
-> **Ubuntu 22.04：** Python 預設版本為 3.10。
->
 > **Ubuntu 24.04：** Python 預設版本為 3.12，禁止直接使用 `pip3` 安裝系統層套件，會有 `externally-managed-environment` 錯誤，請改用：
 > ```bash
 > sudo pip3 install requests pymongo email-validator --break-system-packages
@@ -647,7 +641,7 @@ cd /opt/labManageKit
 ./sync_onlinefpga.sh
 ```
 
-`sync_onlinefpga.sh` 會將 `config.pyc` 及 `onlinefpga.pyc` 複製到 `/home/boleduuser/`，並使用 `chattr +i` 鎖定檔案防止使用者竄改。若目標檔案已存在則先解除鎖定再覆蓋，不存在則直接複製。**請依實際 Python 版本修改腳本中的 `cpython-38` 為對應版本號（如 `cpython-310`、`cpython-312`）：**
+`sync_onlinefpga.sh` 會將 `config.pyc` 及 `onlinefpga.pyc` 複製到 `/home/boleduuser/`，並使用 `chattr +i` 鎖定檔案防止使用者竄改。若目標檔案已存在則先解除鎖定再覆蓋，不存在則直接複製。**請依實際 Python 版本修改腳本中的 `cpython-38` 為對應版本號（如 `cpython-310`、`cpython-312`）**，Ubuntu 20.04 / 22.04 / 24.04 預設的 Python 版本各別為 3.8 / 3.10 / 3.12。
 
 ```bash
 #!/bin/bash
@@ -673,11 +667,9 @@ echo "synchronize config.pyc onlinefpga.pyc to OnlineFPGA boleduuser"
 
 ## 3-5. OnlineFPGA 管理系統程式
 
-OnlineFPGA 管理系統開發程式為 Python 3.8，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python3 相依套件需透過 PIP 安裝，請執行`sudo apt install -y python3-pip`。
+OnlineFPGA 管理系統開發程式為 Python，系統程式碼放置於管理伺服器 HLS00 的 `/opt/labManageKit`。程式中使用到的 Python 相依套件需透過 PIP 安裝，請執行`sudo apt install -y python3-pip`。
 
 ### 檔案總覽
-
-在 `start_docker_boledudb.sh` 那行後面加入：
 
 | 檔案 / 目錄 | 描述  |
 | --- | --- |
@@ -1037,7 +1029,6 @@ python3 monitord.py
 
 - **Name：** Monitord
 - **Command：** `gnome-terminal -- "/opt/labManageKit/start_monitord.sh"`
-- 
 <img width="1095" height="837" alt="260302-001" src="https://github.com/user-attachments/assets/2c36f6e9-b8a2-4d5b-9f51-91f506dea738" />
 
 ---
