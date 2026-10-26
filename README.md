@@ -15,7 +15,7 @@ OnlineFPGA 是由 [Boledu 基金會](https://www.boledu.org/) 為推廣 IC 設�
 - 使用者可提前歸還 FPGA，或等租期結束後重新租用
 - 管理員可透過內部網路對 FPGA 伺服器及 MPSoC 開發板進行監控與管理
 
-> **注意：** 後續範例以目前 Boledu 基金會運作的 Xilinx U50 / VCK-5K / PYNQ-Z2 / KV260 做說明。若套用到不同的 FPGA 板做管理，可能需要修改部分程式碼。
+> **注意：** 後續範例以目前 Boledu 基金會運作的 Xilinx U50 / PYNQ-Z2 / KV260 做說明。若套用到不同的 FPGA 板做管理，可能需要修改部分程式碼。
 
 ---
 
@@ -124,9 +124,9 @@ KV260 透過 Jupyter Notebook 服務連線，外部使用者以 `http://<externa
 > |:---:|:---|:---|
 > | PYNQ-Z2 (Jupyter) | `'2' + 設備編號 + '00'` | PYNQ01 → `20100` |
 > | KV260 (Jupyter) | `(60 + 設備編號) * 100` | KV260_01 → `6100` |
-> | U50 / VCK5K (SSH) | `'1' + 設備編號 + '00'` | U50_01 → `1100` |
+> | U50 (SSH) | `'1' + 設備編號 + '00'` | U50_01 → `1100` |
 >
-> U50 / VCK5K 的這個 port 在 `MonitordInLab = True`（預設）時也是 HLS00 內網連線用的 port（`192.168.1.11:1100`）；PYNQ-Z2 / KV260 在內網則固定用 `DefaultSSHPort = 22`。
+> U50 的這個 port 在 `MonitordInLab = True`（預設）時也是 HLS00 內網連線用的 port（`192.168.1.11:1100`）；PYNQ-Z2 / KV260 在內網則固定用 `DefaultSSHPort = 22`。
 
 ---
 
@@ -404,13 +404,28 @@ python3 test.py
 
 ```bash
 #!/bin/bash
-echo hls00-passwd | sudo -S rm -rf "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
-echo hls00-passwd | sudo -S mkdir "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
-echo hls00-passwd | sudo -S cp -rf /mnt/LabData/hls00/boledudb "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
-sleep 10
+DB_DIR=/mnt/LabData/hls00/boledudb
+BACKUP_DIR="/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
+
+# after boot, wait up to 5 minutes for the NAS mount and the docker daemon
+i=0
+until mountpoint -q /mnt/LabData && docker info > /dev/null 2>&1; do
+    i=$((i + 1))
+    if [ "$i" -ge 60 ]; then
+        echo "/mnt/LabData or docker is not ready, skip MongoDB backup and restart"
+        exit 1
+    fi
+    sleep 5
+done
+
+echo hls00-passwd | sudo -S rm -rf "$BACKUP_DIR"
+echo hls00-passwd | sudo -S mkdir "$BACKUP_DIR"
+echo hls00-passwd | sudo -S cp -rf "$DB_DIR" "$BACKUP_DIR"
 docker rm -f boledudb
-docker run -v /mnt/LabData/hls00/boledudb/:/data/db --name boledudb -d mongo:6.0.1
+docker run -v "$DB_DIR/":/data/db --name boledudb -d mongo:6.0.1
 ```
+
+> 開機後先等待 NAS（`/mnt/LabData`）掛載完成及 docker 服務就緒，最多等 5 分鐘；逾時則不備份也不重建容器並結束，避免 MongoDB 在 NAS 尚未掛載時寫到本機的空目錄。
 
 > 若資料備份路徑不為範例預設的/mnt/LabData/hls00/backupdb/，後續`sync_db.sh` 腳本的路徑也要修改
 
@@ -541,7 +556,7 @@ Vitis/XRT 設定檔案範例路徑（若系統安裝路徑不同，需對應修�
 **其他前置條件：**
 
 - 主機名稱需為 `HLS01` ~ `HLS05`，管理帳號為 `hls01` ~ `hls05`。`manage_user.py` 及 `u50_tenant_util.py` 由 hostname 取得編號，再到 `config.py` 的 `U50UserPassWordList` 找出含該編號的密碼，所以各台的 sudo 密碼字串需包含自己的編號（例如 `hls01-passwd` 含 `01`）。
-- 群組：`manage_user.py` 第一次建立 U50 / VCK5K 互動租用（`u50_validation`）的專案帳號時，會把帳號加入 `render` 及 `docker` 群組（`config.py` 的 `U50DevGroup`、`U50DockerGroup`）。`render` 讓專案帳號能存取 `/dev/dri/render*`，也就是 U50 / VCK5K 卡；`docker` 讓專案帳號不需 sudo 就能執行 Docker 容器（例如 Vitis AI 的開發容器）。沒有安裝 Docker 時不會有 `docker` 群組，只有加入群組這一步會失敗，帳號仍會建立；租戶需要 Docker 時才需安裝 Docker。注意 `docker` 群組的權限等同 root。batch 工作（`u50_batch`）會把帳號移出 `render` 群組，改由 `job_grabber.py` 以管理帳號 sudo 執行 make。
+- 群組：`manage_user.py` 第一次建立 U50 互動租用（`u50_validation`）的專案帳號時，會把帳號加入 `render` 及 `docker` 群組（`config.py` 的 `U50DevGroup`、`U50DockerGroup`）。`render` 讓專案帳號能存取 `/dev/dri/render*`，也就是 U50 卡；`docker` 讓專案帳號不需 sudo 就能執行 Docker 容器（例如 Vitis AI 的開發容器）。沒有安裝 Docker 時不會有 `docker` 群組，只有加入群組這一步會失敗，帳號仍會建立；租戶需要 Docker 時才需安裝 Docker。注意 `docker` 群組的權限等同 root。batch 工作（`u50_batch`）會把帳號移出 `render` 群組，改由 `job_grabber.py` 以管理帳號 sudo 執行 make。
 - sshd 需同時監聽 22（外部經 router `1N00:1N99 → 22` 連入）及 1N00（HLS00 在內網直接連線，見「Server IP 分配」的注意事項）。以 HLS01 為例，在 `/etc/ssh/sshd_config` 加入以下兩行後執行 `sudo systemctl restart ssh`：
 
 ```
@@ -767,7 +782,7 @@ echo -e "${Reset}\n"
 python3 onlinefpga.pyc
 ```
 
-使用者以 SSH 登入後會先看到 `[1] register an BoLedu account`、`[2] already have an account`、`[0] exit OnlineFPGA service` 選單。選 `[1]` 自行註冊時，系統會寄送驗證碼到使用者的 email（需先設定 3-5 `config.py` 的 Gmail 參數）；選 `[2]` 登入後可列出、租用及歸還 PYNQ-Z2 / KV260 / U50 / VCK5K。
+使用者以 SSH 登入後會先看到 `[1] register an BoLedu account`、`[2] already have an account`、`[0] exit OnlineFPGA service` 選單。選 `[1]` 自行註冊時，系統會寄送驗證碼到使用者的 email（需先設定 3-5 `config.py` 的 Gmail 參數）；選 `[2]` 登入後可列出、租用及歸還 PYNQ-Z2 / KV260 / U50。
 
 7. 編譯 OnlineFPGA 系統程式：
 
@@ -802,7 +817,7 @@ echo "synchronize config.pyc onlinefpga.pyc to OnlineFPGA boleduuser"
 
 | 帳號 | 密碼 | 連線位置 | 可見設備 |
 | --- | --- | --- | --- |
-| `boleduuser` | `boleduuser` | `<external_ip>:1000` | 所有設備（PYNQ-Z2 / KV260 / U50 / VCK5K），使用本套件的 `onlinefpga.py` |
+| `boleduuser` | `boleduuser` | `<external_ip>:1000` | 所有設備（PYNQ-Z2 / KV260 / U50），使用本套件的 `onlinefpga.py` |
 | `boledupynq` | `boledupynq` | `<external_ip>:1000` | 僅 PYNQ-Z2 及 KV260，需另外客製化 `onlinefpga.py`（見下方說明） |
 
 > **客製化選單：** 若要修改使用者可見設備，需修改 `onlinefpga.py` 再重新編譯後，執行 `sync_onlinefpga.sh` 複製到對應的使用者目錄，視需要修改該使用者的 `.bashrc`。
@@ -824,7 +839,7 @@ OnlineFPGA 管理系統開發程式為 Python3，系統程式碼放置於管理�
 | `manage_dbuser.py` | 建立（支援 CSV 匯入）/ 刪除資料庫中的使用者資料 |
 | `manage_user.py` | 派送到 HLS 伺服器後，可建立 / 刪除指定使用者帳戶（**需有 FPGA 伺服器**） |
 | `monitord.py` | OnlineFPGA 系統監控及管理主程式 |
-| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面：註冊 / 登入，列出、租用、歸還 PYNQ-Z2 / KV260 / U50 / VCK5K |
+| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面：註冊 / 登入，列出、租用、歸還 PYNQ-Z2 / KV260 / U50 |
 | `__pycache__/` | 存放編譯後的 OnlineFPGA 程式 |
 | `registration.csv` | CSV 範例檔案用來批次建立使用者資料 |
 | `reset_pynq.py` | 派送到 PYNQ-Z2 / KV260 用來重啟 Jupyter Notebook 並設置新的登入密碼（**需修改程式碼，若不是PYNQ 2.7版**） |
@@ -838,7 +853,7 @@ OnlineFPGA 管理系統開發程式為 Python3，系統程式碼放置於管理�
 | `u50_tenant_util.py` | 使用者帳戶工具程式（管理 U50 綁定紀錄與專案帳號）（**需有 FPGA 伺服器**） |
 | `utility/cleandb.sh` | 清理HLSNAS的backupdb目錄下較舊的備份，只保留最新27個日期目錄 |
 | `utility/fix_mongodb.sh` | HLS00非正常斷電後，修復被鎖定的MongoDB資料庫 (見3-1-10 Troubleshooting) |
-| `utility/check_ssh_connection.sh` | 查詢最近的 SSH 連線詳細資料 |
+| `utility/check_ssh_connection.sh` | 查詢最近的 SSH 登入成功 / 失敗及連線紀錄（Accepted / Failed / Invalid user） |
 | `utility/list_subdir_size.sh` | 查詢特定目錄下所有子目錄的使用空間（**需手動輸入 sudo 密碼**） |
 
 **安裝 Python3 相依套件：**
@@ -857,7 +872,7 @@ sudo pip3 install paramiko requests apscheduler pymongo email-validator flask
 sudo apt install -y sshpass mtr-tiny netcat-openbsd
 ```
 
-> `mtr` 用於 `monitord.py` 判斷目前走的是 `ExternalIP` 或 `ExternalIPBak` 外網；`nc` 用於 U50 / VCK5K 的狀態檢查（`nc -w 5 <ip> <port>`：在 5 秒內連到該 HLS 的 SSH port，有收到 SSH 版本字串即判定伺服器在線）。
+> `mtr` 用於 `monitord.py` 判斷目前走的是 `ExternalIP` 或 `ExternalIPBak` 外網；`nc` 用於 U50 的狀態檢查（`nc -w 5 <ip> <port>`：在 5 秒內連到該 HLS 的 SSH port，有收到 SSH 版本字串即判定伺服器在線）。
 
 > **權限設定：** 執行 `sudo chmod +x /opt/labManageKit/*.sh /opt/labManageKit/utility/*.sh` 使所有 sh 檔案可以直接執行。`/opt/labManageKit` 目錄下有異動檔案時需要 `sudo` 權限。
 
@@ -887,7 +902,7 @@ sudo python3 -m compileall .
 
 1. **清理備份：** `backupdb/` 目錄下的備份需定期移除不需要的備份，節省磁碟空間
 2. **清理日誌：** `u50_rented.log` 檔案過大時，可複製到 `u50_rented.old01.log` 後再清空檔案內容
-3. **清理專案帳號：** 學期結束或專案結束時，需移除 HLS01 ~ HLS05 的 U50 / VCK-5K 專案帳號、對應目錄及管理伺服器的使用者 U50 綁定紀錄
+3. **清理專案帳號：** 學期結束或專案結束時，需移除 HLS01 ~ HLS05 的 U50 專案帳號、對應目錄及管理伺服器的使用者 U50 綁定紀錄
 
 ---
 
@@ -930,7 +945,6 @@ OnlineFPGA 系統參數定義檔案，大部分參數請使用預設值。異動
 RentedPynqMinutes = 60       # PYNQ-Z2 預設 60 分鐘
 RentedKv260Minutes = 120     # KV260 預設 120 分鐘
 RentedU50Minutes = 120       # U50 預設 120 分鐘
-RentedVCK5KMinutes = 240     # VCK5K 預設 240 分鐘
 ```
 
 **(2) 設備清單設定**
@@ -954,10 +968,9 @@ U50UserNameList = ['hls01', 'hls02', 'hls03', 'hls04', 'hls05', 'hls06']
 U50UserPassWordList = ['hls01-passwd', 'hls02-passwd', 'hls03-passwd',
                        'hls04-passwd', 'hls05-passwd', 'hls06-passwd']
 U50BoardAvailable = [1, 1, 1, 1, 1, 1]
-U50Alias = ['', '', '', '', 'vck5k_01', '']
 ```
 
-> HLS06 伺服器設置的管理帳號也要為 `hls06`，sudo 密碼字串需包含編號 `06`（例如 `hls06-passwd`），程式以此比對各台密碼。若 HLS06 再安裝一個 VCK5K 卡，則 `U50Alias = ['', '', '', '', 'vck5k_01', 'vck5k_02']`。新伺服器應設置為靜態 IP，router 裡也要確認已連上線。
+> HLS06 伺服器設置的管理帳號也要為 `hls06`，sudo 密碼字串需包含編號 `06`（例如 `hls06-passwd`），程式以此比對各台密碼。新伺服器應設置為靜態 IP，router 裡也要確認已連上線。
 
 **(4) 外網 IP 切換**
 
@@ -1027,7 +1040,6 @@ RentedVitisMinutes = 60
 RentedU50Minutes = 120
 RentedU50JobMinutes = 100
 RentedU50BatchHours = 6
-RentedVCK5KMinutes = 240
 PasswdLength = 6
 
 PynqZ2List = ['01', '02', '03', '04', '05', '06', '07', '09', '10', '11', '12']
@@ -1047,7 +1059,6 @@ U50UserNameList = ['hls01', 'hls02', 'hls03', 'hls04', 'hls05']
 U50UserPassWordList = ['hls01-passwd', 'hls02-passwd', 'hls03-passwd',
                        'hls04-passwd', 'hls05-passwd']
 U50BoardAvailable = [1, 1, 1, 1, 1]
-U50Alias = ['', '', '', '', 'vck5k_01']
 U50UserLimit = 1
 U50BatchLimit = 1
 U50Python3 = '/usr/bin/python3'
@@ -1231,8 +1242,8 @@ sshpass -p "hls01-passwd" scp -P 1100 -o StrictHostKeyChecking=no ./u50_tenant_u
 HLS01 ~ HLS05 FPGA 伺服器租用紀錄檔案範例：
 
 ```
-2023/05/01 18:30:07 user01@example.com returned vck5k_01
-2023/05/01 19:23:15 user01@example.com rented vck5k_01
+2023/05/01 18:30:07 user01@example.com returned u50_05
+2023/05/01 19:23:15 user01@example.com rented u50_05
 2023/05/01 19:27:07 user02@example.com returned u50_04
 2023/05/01 20:12:07 user03@example.com returned u50_02
 ...
@@ -1340,12 +1351,15 @@ hls00@HLS00:/opt/labManageKit/backupdb$ ls
 
 ### utility/check_ssh_connection.sh
 
-查詢最近的 SSH 連線詳細資料，用於檢查是否有異常 SSH 連線行為：
+查詢 `/var/log/auth.log` 最近 500 行（可用參數指定行數，例如 `./check_ssh_connection.sh 2000`）中的 SSH 登入成功（Accepted）、失敗（Failed / Invalid user）及 session 開關紀錄，用於檢查是否有異常 SSH 連線行為（下例 IP 為範例）：
 
 ```bash
 $ ./check_ssh_connection.sh
+Jul 23 12:48:08 HLS00 sshd[8274]: Accepted password for boleduuser from 203.0.113.5 port 51514 ssh2
 Jul 23 12:48:08 HLS00 sshd[8274]: pam_unix(sshd:session): session opened for user boleduuser by (uid=0)
 Jul 23 12:48:35 HLS00 sshd[8501]: pam_unix(sshd:session): session opened for user hls00 by (uid=0)
+Jul 23 12:50:12 HLS00 sshd[8620]: Failed password for boleduuser from 198.51.100.7 port 40022 ssh2
+Jul 23 12:50:15 HLS00 sshd[8622]: Invalid user admin from 198.51.100.7 port 40030
 ...
 ```
 
