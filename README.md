@@ -148,6 +148,19 @@ KV260 透過 Jupyter Notebook 服務連線，外部使用者以 `http://<externa
 
 ---
 
+## 3-0. 下載 OnlineFPGA 套件
+
+在管理伺服器 HLS00 上，將套件從 GitHub 下載到 `/opt/labManageKit`：
+
+```bash
+sudo apt update
+sudo apt install -y git
+sudo git clone https://github.com/bol-edu/onlinefpga.git /opt/labManageKit
+sudo chmod +x /opt/labManageKit/*.sh /opt/labManageKit/utility/*.sh
+```
+
+> 後續更新套件可執行 `cd /opt/labManageKit && sudo git pull`。`config.py` 內的 IP、帳號密碼等需依實際環境修改（見 3-5 的 config.py 說明）；若已修改，`git pull` 前請先備份。
+
 ## 3-1. 管理伺服器設置
 本章節腳本範例中使用 `hls00-passwd` 作為管理伺服器的 sudo 密碼佔位符，實際部署時**務必替換為您自行設定的實際密碼**，並確認腳本中所有出現 `hls00-passwd` 的位置皆已更新。
 
@@ -206,6 +219,15 @@ NAS 伺服器主要目的是將管理伺服器的 MongoDB 資料做異機儲存�
 
 建立與 OnlineFPGA 管理伺服器共用的資料夾（如 `/volume1/LabData`），並設定可被共用的權限。
 
+以 Synology NAS 為例：
+
+1. **控制台 → 共用資料夾 → 編輯 → NFS 權限**，新增規則，客戶端填管理伺服器 HLS00 的內網 IP（如 `192.168.1.10`），設定如下：
+   - Squash：不調整
+   - 非同步：是
+   - 非特殊權限…：允許
+   - 交互掛載：允許
+2. **File Station → LabData → 建立 `hls00` 資料夾 → 內容 → 權限**，新增 Everyone（類型：允許，權限：讀取）。
+
 **b. OnlineFPGA 管理伺服器端**
 
 ```bash
@@ -232,6 +254,12 @@ df -h
 
 ```
 192.168.1.2:/mnt/LabData     49G   11G 2000G  14% /mnt/LabData
+```
+
+建立 MongoDB 資料及備份目錄（若 NAS 端尚未建立）：
+
+```bash
+sudo mkdir -p /mnt/LabData/hls00/boledudb /mnt/LabData/hls00/backupdb
 ```
 
 ---
@@ -371,7 +399,7 @@ sudo crontab -e
 @reboot sh /bin/start_docker_boledudb.sh &
 ```
 
-另外，為避免備份資料持續累積導致磁碟空間不足，`cleandb.sh` 腳本每次執行會保留最新 27 個（`KEEP_BACKUPS`-1）日期備份目錄，並自動刪除較舊的備份目錄。
+另外，為避免備份資料持續累積導致磁碟空間不足，`utility/cleandb.sh` 腳本每次執行會保留最新 27 個（`KEEP_BACKUPS`-1）日期備份目錄，並自動刪除較舊的備份目錄。
 
 > 若備份路徑不為預設的 `/mnt/LabData/hls00/backupdb/`，請修改腳本中 `BACKUP_DIRS` 的路徑。
 > 若需調整保留份數，請修改 `KEEP_BACKUPS` 的數值（實際保留 `KEEP_BACKUPS`-1 個）。
@@ -386,7 +414,7 @@ crontab -e
 加入以下排程：
 
 ```
-20 6 * * * /opt/labManageKit/cleandb.sh
+20 6 * * * /opt/labManageKit/utility/cleandb.sh
 ```
 
 舊備份目錄將依照日期名稱排序後，從最舊的開始刪除，直到只剩最新 `KEEP_BACKUPS`-1 個為止。
@@ -528,6 +556,7 @@ chmod o=rw /dev/dri/render*
 
 ```bash
 sudo mkdir -p /opt/labManageKit
+sudo chown $USER /opt/labManageKit    # 讓 hlsNN 帳號可由 HLS00 scp 寫入
 ```
 
 將管理伺服器上的 `config.py`、`manage_user.py`、`job_grabber.py` 及 `u50_tenant_util.py` 複製到各 FPGA 伺服器的 `/opt/labManageKit/` 目錄。
@@ -775,7 +804,7 @@ sudo pip3 install paramiko requests apscheduler pymongo email-validator flask
 sudo apt install -y sshpass
 ```
 
-> **權限設定：** 執行 `sudo chmod +x /opt/labManageKit/*.sh` 使所有 sh 檔案可以直接執行。`/opt/labManageKit` 目錄下有異動檔案時需要 `sudo` 權限。
+> **權限設定：** 執行 `sudo chmod +x /opt/labManageKit/*.sh /opt/labManageKit/utility/*.sh` 使所有 sh 檔案可以直接執行。`/opt/labManageKit` 目錄下有異動檔案時需要 `sudo` 權限。
 
 ---
 
@@ -1193,7 +1222,7 @@ Total tenants: 7
 
 ---
 
-### cleandb.sh
+### utility/cleandb.sh
 
 自動清理 /mnt/LabData/hls00/backupdb/ 中較舊的備份目錄，只保留名稱為日期的最新 27 個，避免備份佔滿 NAS 空間。腳本中 KEEP_BACKUPS=28，實際保留數為 KEEP_BACKUPS-1，即 27 個。
 
@@ -1226,7 +1255,7 @@ done
 使用情境：備份目錄數量過多、磁碟空間不足時，在管理伺服器 HLS00 手動執行：
 
 ```bash
-hls00@HLS00:/opt/labManageKit$ ./cleandb.sh
+hls00@HLS00:/opt/labManageKit/utility$ ./cleandb.sh
 ```
 
 有超過保留數的舊備份時，每刪除一個目錄會印出 Deleting 路徑/日期目錄；沒有需要刪除的備份時印出 No backups to delete in 路徑；備份路徑不存在時印出 Directory 路徑 not found, skipping...。清理後只剩最新 27 個日期目錄，例如 2026-10-26 查詢 backupdb/ 的結果：
@@ -1246,7 +1275,7 @@ hls00@HLS00:/opt/labManageKit/backupdb$ ls
 
 ```
 # m h  dom mon dow   command
-20 6 * * * /opt/labManageKit/cleandb.sh
+20 6 * * * /opt/labManageKit/utility/cleandb.sh
 25 6 * * * echo boleduhls00 | sudo -S reboot
 ```
 
