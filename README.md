@@ -256,10 +256,11 @@ df -h
 192.168.1.2:/mnt/LabData     49G   11G 2000G  14% /mnt/LabData
 ```
 
-建立 MongoDB 資料及備份目錄（若 NAS 端尚未建立）：
+建立 MongoDB 資料及備份目錄：
 
 ```bash
-sudo ln -s /mnt/LabData/hls00/boledudb /opt/labManageKit/backupdb
+sudo mkdir -p /mnt/LabData/hls00/boledudb /mnt/LabData/hls00/backupdb
+sudo ln -s /mnt/LabData/hls00/backupdb /opt/labManageKit/backupdb
 ```
 
 ---
