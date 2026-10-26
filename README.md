@@ -211,7 +211,7 @@ mongo        6.0.1     d34d21a9eb5b   3 years ago   693MB
 NAS 伺服器主要目的是將管理伺服器的 MongoDB 資料做異機儲存及備份，以保障資料的安全。
 
 - **MongoDB 資料路徑：** `/mnt/LabData/hls00/boledudb/`
-- **MongoDB 資料備份路徑：** `/mnt/LabData/hls00/backupdb/`
+- **MongoDB 資料備份路徑：** `/opt/labManageKit/backupdb`
 
 > 若沒有設置 NAS 伺服器，則需要修改 MongoDB 資料路徑及備份路徑，修改後也需確認完成 3-1 內所有步驟的安裝及測試。
 
@@ -259,7 +259,7 @@ df -h
 建立 MongoDB 資料及備份目錄（若 NAS 端尚未建立）：
 
 ```bash
-sudo mkdir -p /mnt/LabData/hls00/boledudb /mnt/LabData/hls00/backupdb
+sudo ln -s /mnt/LabData/hls00/boledudb /opt/labManageKit/backupdb
 ```
 
 ---
