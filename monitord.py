@@ -219,14 +219,6 @@ def update_queue_timeout(device, timeout):
 	return('update queue timeout is finishing ')
 	
 
-def alias_to_vck5k(device):
-	if 'u50' in device:
-		device_idx = int(device.replace('u50_', ''))
-		if device_idx <= len(U50Alias) and not U50Alias[device_idx-1] == '':
-			return(U50Alias[device_idx-1])
-	return(device)	
-
-
 def find_external_ip():
 	mrt_result = str.split(os.popen('timeout 0.75 mtr -m 2 -p www.google.com' ).read())	
 	if ExternalIPBakGateway in mrt_result:
@@ -334,7 +326,7 @@ def manage_u50_user(ip, device, port, manage_act, username, job, timeupstr):
 			if U50QueueEnable and not email == '' and manage_act == 'del':
 				timeup = datetime.now() + timedelta(minutes=U50QueueTimeOut)
 				update_queue_timeout(device, timeup.strftime('%m/%d/%Y %H:%M:%S'))				
-				title_txt = 'device ' + alias_to_vck5k(device) + ' is available now, your rent reservation is timeout at ' + timeup.strftime('%m/%d %H:%M:%S')				
+				title_txt = 'device ' + device + ' is available now, your rent reservation is timeout at ' + timeup.strftime('%m/%d %H:%M:%S')				
 				email_notification(email, title_txt, '')
 	except:
 		col_device.update_one({'device':device},{ '$set':{'status':'unknown'}})
@@ -488,7 +480,7 @@ def check_timeup():
 					internal_ip, ssh_port = find_internal_ip_port_by_device(i['device'])					
 					u50_tasks.append({'ip':ip, 'device':i['device'], 'port':ssh_port, 'manage_act':'del', 'username':i['ssh_passwd'], 'job':i['job']})
 					print('[2005] check_and_action(): ' + U50RentedLogFile + ' written: ' + datetime.now().strftime('%Y/%m/%d %H:%M:%S') + ' ' + i['email'] + ' returned ' + i['device'])
-					os.system('echo ' + '\'' + datetime.now().strftime('%Y/%m/%d %H:%M:%S') + ' ' + i['email'] + ' returned ' + alias_to_vck5k(i['device']) + '\'' + ' >> ' + U50RentedLogFile)	
+					os.system('echo ' + '\'' + datetime.now().strftime('%Y/%m/%d %H:%M:%S') + ' ' + i['email'] + ' returned ' + i['device'] + '\'' + ' >> ' + U50RentedLogFile)	
 					if 'u50_batch' in i['job']:
 						u50_batch_jobs.append(i['email'])
 			else:
@@ -515,7 +507,7 @@ def check_timeup():
 				if not email == '':
 					timeup = datetime.now() + timedelta(minutes=U50QueueTimeOut)
 					update_queue_timeout(i['device'], timeup.strftime('%m/%d/%Y %H:%M:%S'))
-					title_txt = 'device ' + alias_to_vck5k(i['device']) + ' is available now, your rent reservation is timeout at ' + timeup.strftime('%m/%d %H:%M:%S')
+					title_txt = 'device ' + i['device'] + ' is available now, your rent reservation is timeout at ' + timeup.strftime('%m/%d %H:%M:%S')
 					email_notification(email, title_txt, '')
 	return('check timeup is finishing')
 	
@@ -721,7 +713,7 @@ def batch_jobber():
 		rented_record = get_rented_record(data['email'])
 		query_job_count, query_jobs = query_batch_job_by_email(data['email'], False)
 		print('[5004] batch_jobber(): user %s query batch jobs %s on device %s' %(data['email'], rented_record['job_list'], rented_record['device']))
-		return('user %s query %s batch jobs on device %s\n%s' %(data['email'], query_job_count, alias_to_vck5k(rented_record['device']), query_jobs))
+		return('user %s query %s batch jobs on device %s\n%s' %(data['email'], query_job_count, rented_record['device'], query_jobs))
 	elif data['jobber'] == 'kill':
 		rented_record = get_rented_record(data['email'])
 		kill_job_count = 0
@@ -736,7 +728,7 @@ def batch_jobber():
 			title_txt = gen_batch_title_txt(rented_record)
 			query_job_count, notification = query_batch_job_by_email(data['email'], False)
 			email_notification(rented_record['email'], title_txt, notification)
-		return('user %s kill %s batch jobs on device %s\n%s' %(data['email'], kill_job_count, alias_to_vck5k(rented_record['device']), kill_jobs))
+		return('user %s kill %s batch jobs on device %s\n%s' %(data['email'], kill_job_count, rented_record['device'], kill_jobs))
 	else:
 		pass
 	return('batch jobber is finishing')
@@ -758,10 +750,8 @@ def fpga_rent():
 	timeup_vitis = datetime.now() + timedelta(minutes=RentedVitisMinutes)
 	timeup_u50 = datetime.now() + timedelta(minutes=RentedU50Minutes)
 	timeup_u50_batch = datetime.now() + timedelta(hours=RentedU50BatchHours*U50BatchLimit)
-	timeup_vck5k = datetime.now() + timedelta(minutes=RentedVCK5KMinutes)
 	timeup = timeup_pynq if 'pynq' in data['device'] else timeup_kv260 if 'kv260' in data['device'] else \
 	         timeup_vitis if 'vitis_tool' == data['job'] else \
-	         timeup_vck5k if 'u50_validation' == data['job'] and '05' in data['device'] else \
 	         timeup_u50 if 'u50_validation' == data['job'] else timeup_u50_batch
 	timeupstr = timeup.strftime('%m/%d/%Y %H:%M:%S')
 	if not data['job'] == 'u50_batch' and datetime.strptime(datetime.now().strftime('%H:%M'), '%H:%M') < datetime.strptime(ServiceStop, '%H:%M') and \
@@ -822,11 +812,11 @@ def fpga_rent():
 			else:
 				pass
 			print('[3005] fpga_rent(): ' + U50RentedLogFile + ' written: ' + datetime.now().strftime('%Y/%m/%d %H:%M:%S') + ' ' + data['email'] + ' rented ' + data['device'])
-			os.system('echo ' + '\'' + datetime.now().strftime('%Y/%m/%d %H:%M:%S') + ' ' + data['email'] + ' rented ' + alias_to_vck5k(data['device']) + '\'' + ' >> ' + U50RentedLogFile)	
+			os.system('echo ' + '\'' + datetime.now().strftime('%Y/%m/%d %H:%M:%S') + ' ' + data['email'] + ' rented ' + data['device'] + '\'' + ' >> ' + U50RentedLogFile)	
 			if data['job'] == 'u50_validation':
 				rent_message = 'user %s rented device %s successfully\nssh ip port is %s, ssh username/passwd is %s and timeup at %s'
 				print('[3003] fpga_rent(): ' + rent_message %(data['email'], data['device'], external_ip + ':' + ssh_port, ssh_passwd, timeupstr))
-				return(rent_message %(data['email'], alias_to_vck5k(data['device']), external_ip + ':' + ssh_port, ssh_passwd, timeupstr))
+				return(rent_message %(data['email'], data['device'], external_ip + ':' + ssh_port, ssh_passwd, timeupstr))
 			if data['job'] == 'u50_batch':
 				rent_message = 'user %s requested batch jobs successfully\nssh ip port is %s, ssh username/passwd is %s\nthe batch jobs progress will be notified by email'
 				print('[3004] fpga_rent(): ' + rent_message %(data['email'], external_ip + ':' + ssh_port, ssh_passwd))
@@ -835,7 +825,7 @@ def fpga_rent():
 			if data['job'] == 'u50_validation':
 				rent_message = 'user %s rented device %s unsuccessfully, already have used device/batch jobs or you are invalid tenant?'
 				print('[3005] fpga_rent(): ' + rent_message %(data['email'], data['device']))
-				return(rent_message %(data['email'], alias_to_vck5k(data['device'])))
+				return(rent_message %(data['email'], data['device']))
 			if data['job'] == 'u50_batch':
 				rent_message = 'user %s requested batch jobs on device %s unsuccessfully, already have used device/batch jobs?'
 				print('[3006] fpga_rent(): ' + rent_message %(data['email'], data['device']))
@@ -868,13 +858,13 @@ def fpga_return():
 			print('[4002] fpga_return(): remove user %s job %s from device %s' %(data['email'], data['job'], data['device']))	
 			return ('user %s cancel bat jobs successfully' %(data['email']))
 		else:
-			return ('user %s return device %s successfully' %(data['email'], alias_to_vck5k(data['device'])))
+			return ('user %s return device %s successfully' %(data['email'], data['device']))
 	else:
 		print('[4003] fpga_return(): change user %s timeup from %s to %s' %(data['email'], timeup, timeup))
 		if data['job'] == 'u50_batch':			
 			return ('user %s cancel bat jobs unsuccessfully' %(data['email']))	
 		else:
-			return ('user %s return device %s unsuccessfully' %(data['email'], alias_to_vck5k(data['device'])))	
+			return ('user %s return device %s unsuccessfully' %(data['email'], data['device']))	
 
     
 if __name__ == '__main__':

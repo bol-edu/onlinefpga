@@ -14,7 +14,6 @@ RentedVitisMinutes = 60
 RentedU50Minutes = 120
 RentedU50JobMinutes = 100
 RentedU50BatchHours = 6
-RentedVCK5KMinutes = 240
 PasswdLength = 6
 PynqZ2List = ['01', '02', '03', '04', '05', '06', '07', '09', '10', '11', '12']
 Kv260List = ['02', '03', '04', '05', '06', '08', '09', '10', '11', '12', '13', '20']
@@ -31,7 +30,6 @@ U50UserNameList = ['hls01', 'hls02', 'hls03', 'hls04', 'hls05']
 # each sudo password must contain its HLS number (01~05)
 U50UserPassWordList = ['hls01-passwd', 'hls02-passwd', 'hls03-passwd', 'hls04-passwd', 'hls05-passwd']
 U50BoardAvailable = [1, 1, 1, 1, 1]
-U50Alias = ['', '', '', '', 'vck5k_01']
 U50UserLimit = 1
 U50BatchLimit = 1
 U50Python3 = '/usr/bin/python3'

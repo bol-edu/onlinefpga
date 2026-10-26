@@ -34,23 +34,6 @@ def check_device_exist(device):
 	return('device is not existing')
 
 
-def alias_to_vck5k(device):
-	if 'u50' in device:
-		device_idx = int(device.replace('u50_', ''))
-		if device_idx <= len(U50Alias) and not U50Alias[device_idx-1] == '':
-			return(U50Alias[device_idx-1])
-	return(device)
-
-
-def alias_to_u50(device):
-	if device in U50Alias:
-		alias_device = 'u50_' + str(U50Alias.index(device)+1).zfill(2)
-		for i in col_device.find({}, {"_id":0, 'device':1}):
-			if alias_device == i['device']:
-				return (alias_device)
-	return('device is not existing')
-
-
 def check_device_available(device):
 	for i in col_device.find({}, {"_id":0, 'device':1, 'status':1, 'user':1}):
 		if device == i['device']:
@@ -137,29 +120,19 @@ def check_email_passwd(email, password):
 def list_device(device_type):
 	print('all online device boards')
 	for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1}):
-		if 'pynq_' in str(i) and not (device_type == 'kv260' or device_type == 'u50' or device_type == 'vck5k'):
+		if 'pynq_' in str(i) and not (device_type == 'kv260' or device_type == 'u50'):
 			print (str(i).replace('\'status', '  \'status'))
 	for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1}):
-		if 'kv260' in str(i) and not (device_type == 'pynq' or device_type == 'u50' or device_type == 'vck5k'):
+		if 'kv260' in str(i) and not (device_type == 'pynq' or device_type == 'u50'):
 			print (str(i).replace('\'status', ' \'status'))
 	if U50QueueEnable:
 		for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1, 'user': 1, 'queue_user':1, 'u50_board':1, 'tenant': 1}):
 			if 'u50' in str(i) and not (device_type == 'pynq' or device_type == 'kv260'):
-				u50_alias_device = U50Alias[int(i['device'].replace('u50_',''))-1]
-				if not u50_alias_device == '':
-					print (str(i).replace('\'status', ' \'status').replace(i['device'], u50_alias_device).replace('u50_board', 'vck_board'))
-				else:
-					if not device_type == 'vck5k':
-						print (str(i).replace('\'status', '   \'status'))
+				print (str(i).replace('\'status', '   \'status'))
 	else:
 		for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1, 'user': 1, 'u50_board':1, 'tenant': 1}):
 			if 'u50' in str(i) and not (device_type == 'pynq' or device_type == 'kv260'):
-				u50_alias_device = U50Alias[int(i['device'].replace('u50_',''))-1]
-				if not u50_alias_device == '':
-					print (str(i).replace('\'status', ' \'status').replace(i['device'], u50_alias_device).replace('u50_board', 'vck_board'))
-				else:
-					if not device_type == 'vck5k':
-						print (str(i).replace('\'status', '   \'status'))
+				print (str(i).replace('\'status', '   \'status'))
 	print ('\n')
 
 	
@@ -212,13 +185,13 @@ def add_to_queue(email, device):
 				can_add_to_queue = True
 				break
 	if not can_add_to_queue:
-		print('you are invalid %s tenant' %(alias_to_vck5k(device)))
-		print('user %s is added to device %s queue unsuccessfully' %(email, alias_to_vck5k(device)))
+		print('you are invalid %s tenant' %(device))
+		print('user %s is added to device %s queue unsuccessfully' %(email, device))
 	elif current_user(email, device):
-		print('you are current user, user %s is added to device %s queue unsuccessfully' %(email, alias_to_vck5k(device)))		
+		print('you are current user, user %s is added to device %s queue unsuccessfully' %(email, device))		
 	elif queue_status == 'queue first' or 'but not first' in queue_status:
 		num_st = queue_status.replace(' but not first', '') if 'but not first' in queue_status else '1st'
-		print('user %s is already added to device %s queue and %s in wait queue' %(email, alias_to_vck5k(device), num_st))
+		print('user %s is already added to device %s queue and %s in wait queue' %(email, device, num_st))
 		print('please rent after email notification')
 	else:
 		for i in col_device.find({}, {"_id":0, 'device': 1, 'queue_user':1, 'queue_email': 1}):
@@ -235,15 +208,15 @@ def add_to_queue(email, device):
 				col_device.update_one({'device':i['device']},{ '$set':{ 'queue_user':i['queue_user']+1 } })	
 				timeupstr =	get_timeup(device)
 				retimeupstr = timeupstr.replace('/', ' ').split()[0] + '/' + timeupstr.replace('/', ' ').split()[1] + ' ' + timeupstr.replace('/', ' ').split()[-1]
-				print('user %s is added to device %s queue and %sst in wait queue successfully' %(email, alias_to_vck5k(device), len(update_queue_email)))
-				print('current user will timeup at %s, you will receive a email notification while device %s is your turn' %(retimeupstr, alias_to_vck5k(device)))
+				print('user %s is added to device %s queue and %sst in wait queue successfully' %(email, device, len(update_queue_email)))
+				print('current user will timeup at %s, you will receive a email notification while device %s is your turn' %(retimeupstr, device))
 		 			
 
 def rent_device_with_queue(email, device, job):	
 	available = check_device_available(device)
 	if 'is available' in available:		
 		queue_status = check_in_queue(email, device)		
-		print('device %s is available' %(alias_to_vck5k(device)))
+		print('device %s is available' %(device))
 		rent = input('do you want to rent this device? (y/n)\n>> ')
 		if (rent == 'y' or rent == 'Y') and (queue_status == 'no queue' or queue_status == 'queue first'):
 			if queue_status == 'queue first':
@@ -255,7 +228,7 @@ def rent_device_with_queue(email, device, job):
 				print('contact OnlineFPGA admin to restart monitord service')
 		elif (rent == 'y' or rent == 'Y') and 'but not first' in queue_status:
 			print('user %s in device %s queue and %s in wait queue, please rent after email notification' \
-			      %(email, alias_to_vck5k(device), queue_status.replace(' but not first', '')))
+			      %(email, device, queue_status.replace(' but not first', '')))
 		elif (rent == 'y' or rent == 'Y') and 'not in queue' in queue_status:			
 			add_to_queue(email, device)
 		elif rent == 'n' or rent == 'N':
@@ -263,14 +236,14 @@ def rent_device_with_queue(email, device, job):
 		else:
 			print('your input is invalid')
 	else:
-		print('device %s current status is %s' %(alias_to_vck5k(device), check_device_status(device)))
+		print('device %s current status is %s' %(device, check_device_status(device)))
 		add_to_queue(email, device)
 
 
 def rent_device(email, device, job):	
 	available = check_device_available(device)
 	if 'is available' in available:
-		print('device %s is available' %(alias_to_vck5k(device)))
+		print('device %s is available' %(device))
 		rent = input('do you want to rent this device? (y/n)\n>> ')
 		if rent == 'y' or rent == 'Y':
 			try:
@@ -283,7 +256,7 @@ def rent_device(email, device, job):
 		else:
 			print('your input is invalid')
 	else:		
-		print('device %s current status is %s' %(alias_to_vck5k(device), check_device_status(device)))	
+		print('device %s current status is %s' %(device, check_device_status(device)))	
 		
 
 def find_available_device(device_type, job):
@@ -320,7 +293,7 @@ def check_available_u50_device(device, job):
 def return_device(email, device):
 	used = check_device_used(device)	
 	if 'is used' in used:
-		print('device %s is in used' %(alias_to_vck5k(device)))
+		print('device %s is in used' %(device))
 		return_confirm = input('do you want to return this device? (y/n)\n>> ')
 		if return_confirm == 'y' or return_confirm == 'Y':
 			try:
@@ -335,7 +308,7 @@ def return_device(email, device):
 		else:
 			print('your input is invalid')
 	else:
-		print('device %s is no needed to return' %(alias_to_vck5k(device)))
+		print('device %s is no needed to return' %(device))
 		
 
 def reg_or_login_menu():
@@ -360,7 +333,6 @@ def device_menu():
 	print('[1] pynq')
 	print('[2] kv260')
 	print('[3] u50')
-	print('[4] vck5k')
 	print('\n')	
 	
 		
@@ -429,33 +401,18 @@ def service(pts_pid):
 						print('no available device, rent later')
 				else:
 					print('your input is invalid')
-			elif sub_option == 3 or sub_option == 4:
-				device_type = 'u50' if sub_option == 3 else 'vck5k'
-				subsub_option = 1
-				if sub_option == 3:
-					job_menu()
-					try:
-						subsub_option = int(input('please enter your option:\n>> '))
-					except:
-						subsub_option = 2											
+			elif sub_option == 3:
+				device_type = 'u50'
+				job_menu()
+				try:
+					subsub_option = int(input('please enter your option:\n>> '))
+				except:
+					subsub_option = 2
 				if subsub_option == 1:
 					list_device(device_type)
 					try:						
 						device = input('please enter %s device name which you want to rent:\n>> ' %(device_type))
-						exist = ''
-						if 'pynq' in device or 'kv260' in device:
-							pass
-						elif sub_option == 3 and 'vck5k' in device:
-							pass
-						elif sub_option == 4 and 'u50' in device:
-							pass
-						elif sub_option == 3 and 'u50' in alias_to_vck5k(device):
-							exist = check_device_exist(device)
-						elif sub_option == 4:
-							device = alias_to_u50(device)
-							exist = check_device_exist(device)
-						else:
-							pass	
+						exist = check_device_exist(device) if 'u50' in device else ''
 						if 'is existing' in exist:
 							available_or_not = check_available_u50_device(device, 'u50_validation')
 							if U50QueueEnable:
@@ -476,8 +433,6 @@ def service(pts_pid):
 		elif option == 3:
 			try:
 				device = input('please enter device name which you want to return:\n>> ')
-				if 'vck5k' in device:
-					device = alias_to_u50(device)
 				exist = check_device_exist(device)
 				if 'is existing' in exist:
 					return_device(email, device)
