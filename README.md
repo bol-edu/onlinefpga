@@ -266,7 +266,7 @@ collection-4--1739418379110125285.wt  index-3--1739418379110125285.wt  journal  
 
 ---
 
-### 3-1-5. 安裝 MongoDB Compass GUI 工具及連線 MongoDB
+### 3-1-5. 安裝 MongoDB Compass GUI 工具及連線 MongoDB (選項非必要)
 
 到[官網](https://www.mongodb.com/products/tools/compass)找到最新支援 Ubuntu 64-bit 的版本（以下以 1.49.2 為例）：
 
@@ -292,7 +292,7 @@ mongodb://172.17.0.2:27017
 
 ---
 
-### 3-1-6. 建立 MongoDB 的表格及測試
+### 3-1-6. 建立 MongoDB 的表格及測試 (選項非必要)
 
 在 MongoDB Compass 中：
 
@@ -371,39 +371,100 @@ sudo crontab -e
 @reboot sh /bin/start_docker_boledudb.sh &
 ```
 
-另外，為避免備份資料持續累積導致磁碟空間不足，`cleandb.sh` 腳本會保留最近一個月備份，並自動刪除較舊的備份目錄。
+另外，為避免備份資料持續累積導致磁碟空間不足，`cleandb.sh` 腳本每次執行會保留最新 27 個（`KEEP_BACKUPS`-1）日期備份目錄，並自動刪除較舊的備份目錄。
 
 > 若備份路徑不為預設的 `/mnt/LabData/hls00/backupdb/`，請修改腳本中 `BACKUP_DIRS` 的路徑。
-> 若需調整保留天數，請修改 `KEEP_BACKUPS` 的數值。
+> 若需調整保留份數，請修改 `KEEP_BACKUPS` 的數值（實際保留 `KEEP_BACKUPS`-1 個）。
 > 腳本中的 `hls00-passwd` 為範例密碼，請替換為實際設定的管理伺服器 sudo 密碼。
 
-設置每日 06:25 自動執行：
+設置每日 06:20 自動執行（早於 06:25 的管理伺服器重啟，重啟後 `start_docker_boledudb.sh` 會再建立當日備份）。使用 hls00 使用者的 crontab（不加 sudo）：
 
 ```bash
-sudo crontab -e
+crontab -e
 ```
 
 加入以下排程：
 
 ```
-25 6 * * * /opt/labManageKit/cleandb.sh
+20 6 * * * /opt/labManageKit/cleandb.sh
 ```
 
-舊備份目錄將依照日期名稱排序後，從最舊的開始刪除，直到剩餘數量符合 `KEEP_BACKUPS` 設定值為止。
+舊備份目錄將依照日期名稱排序後，從最舊的開始刪除，直到只剩最新 `KEEP_BACKUPS`-1 個為止。
 
 ---
 
 ### 3-1-8. 設定管理伺服器每日重啟時間
 
+使用 hls00 使用者的 crontab（不加 sudo）：
+
 ```bash
-sudo crontab -e
+crontab -e
 ```
 
-加入以下排程，設定管理伺服器每日固定重啟時間（例如每日 6:30）：
+加入以下排程，設定管理伺服器每日固定重啟時間（例如每日 6:25）：
 
 ```
-30 6 * * * echo hls00-passwd | sudo -S reboot
+25 6 * * * echo hls00-passwd | sudo -S reboot
 ```
+
+### 3-1-9. 設定 monitord 開機自動啟動
+
+管理伺服器 HLS00 每日維護重啟後，會在 Ubuntu 桌面自動啟動 Terminal 執行 `start_monitord.sh`，Terminal 會顯示 `monitord.py` 的所有活動 log。
+
+> **注意：** Startup Application 要在桌面登入後才會執行，管理伺服器 HLS00 必須設置 hls00 帳號自動登入，否則重啟後 monitord 不會啟動。
+
+設置自動登入：**Settings → Users → Unlock → Automatic Login** 開啟。或編輯 `/etc/gdm3/custom.conf`，在 `[daemon]` 下加入：
+
+```
+AutomaticLoginEnable=true
+AutomaticLogin=hls00
+```
+
+在 Ubuntu 桌面的 **Startup Application**（每日重啟後自動執行）新增項目：
+
+- **Name：** Monitord
+- **Command：** `gnome-terminal -- "/opt/labManageKit/start_monitord.sh"`
+- **Comment：** OnlineFPGA Monitord
+
+![2601026-001](https://github.com/user-attachments/assets/8c323551-647d-421a-8036-da099ce68215)
+
+![2601026-002](https://github.com/user-attachments/assets/e72f5880-01d9-4d80-ae55-493b4dee3807)
+
+> `start_monitord.sh` 的內容請見 3-5 的 `start_monitord.sh`。
+
+### 3-1-10. Troubleshooting：MongoDB 無法啟動（管理伺服器非正常斷電後）
+
+管理伺服器非正常斷電/關機後重開機，MongoDB 資料庫目錄 `/mnt/LabData/hls00/boledudb/` 殘留鎖定狀態，`boledudb` 容器無法正常啟動，OnlineFPGA 連不到資料庫，使用者登入失敗。
+
+1. 確認狀況：
+
+```bash
+docker ps -a
+docker logs boledudb
+```
+
+`boledudb` 容器為 Exited，或日誌顯示資料庫無法開啟，繼續下列步驟。
+
+2. 修復前先保留一份資料（修復會修改資料目錄）：
+
+```bash
+sudo cp -a /mnt/LabData/hls00/boledudb /mnt/LabData/hls00/backupdb/before_repair
+```
+
+> `start_docker_boledudb.sh` 開機時已先備份到 `backupdb/` 的當日目錄（同日備份會被覆蓋，內容可能已是鎖定狀態的資料；前一日的備份仍保留）。`before_repair` 不是日期名稱，`cleandb.sh` 不會清理，確認修復後正常請手動刪除。
+
+3. 執行修復腳本並重新啟動 MongoDB：
+
+```bash
+cd /opt/labManageKit/utility
+sudo chmod +x *.sh
+./fix_mongodb.sh
+./start_docker_boledudb.sh
+docker ps
+```
+
+`docker ps` 顯示 `boledudb` 為 Up 即可重新登入。
+
 ---
 
 ## 3-2. FPGA 伺服器設置
@@ -686,7 +747,6 @@ OnlineFPGA 管理系統開發程式為 Python3，系統程式碼放置於管理�
 | `registration.csv` | CSV 範例檔案用來批次建立使用者資料 |
 | `reset_pynq.py` | 派送到 PYNQ-Z2 / KV260 用來重啟 Jupyter Notebook 並設置新的登入密碼（**需修改程式碼，若不是PYNQ 2.7版**） |
 | `start_docker_boledudb.sh` | 管理伺服器重啟後備份 MongoDB 資料庫並重啟 Docker（**需設置 sudo 密碼**） |
-| `cleandb.sh` | 自動清理 `/mnt/LabData/hls00/backupdb/` 中超過 28 天的舊備份目錄（**需設置 sudo 密碼**） |
 | `start_monitord.sh` | 啟動 `active_monitord.py` 及 `monitord.py` （**維護時間預設 06:00-07:00，若異動需同步修改腳本內容**）|
 | `stop_monitord.sh` | 關閉所有 monitord 相關程序 |
 | `sync_db.sh` | 手動備份 MongoDB 資料庫（**需設置 sudo 密碼**） |
@@ -694,6 +754,8 @@ OnlineFPGA 管理系統開發程式為 Python3，系統程式碼放置於管理�
 | `sync_onlinefpga.sh` | 手動同步編譯後的 `.pyc` 到使用者目錄（**需設置 sudo 密碼**） |
 | `u50_rented.log` | HLS01 ~ HLS05 FPGA 伺服器租用紀錄檔案（**需有 FPGA 伺服器**） |
 | `u50_tenant_util.py` | 使用者帳戶工具程式（管理 U50 綁定紀錄與專案帳號）（**需有 FPGA 伺服器**） |
+| `cleandb.sh` | 清理HLSNAS的backupdb目錄下較舊的備份，只保留最新27個日期目錄 |
+| `fix_mongodb.sh` | HLS00非正常斷電後，修復被鎖定的MongoDB資料庫 (見3-1-10 Troubleshooting) |
 | `utility/check_ssh_connection.sh` | 查詢最近的 SSH 連線詳細資料 |
 | `utility/list_subdir_size.sh` | 查詢特定目錄下所有子目錄的使用空間（**需手動輸入 sudo 密碼**） |
 
@@ -1127,6 +1189,65 @@ Tenants on HLS02:
 02.CtINEm change: 2023-06-30
 ...
 Total tenants: 7
+```
+
+---
+
+### cleandb.sh
+
+自動清理 /mnt/LabData/hls00/backupdb/ 中較舊的備份目錄，只保留名稱為日期的最新 27 個，避免備份佔滿 NAS 空間。腳本中 KEEP_BACKUPS=28，實際保留數為 KEEP_BACKUPS-1，即 27 個。
+
+```bash
+#!/bin/bash
+KEEP_BACKUPS=28
+
+BACKUP_DIRS=(
+    "/mnt/LabData/hls00/backupdb"
+)
+
+for BACKUP_PATH in "${BACKUP_DIRS[@]}"; do
+    if [ -d "$BACKUP_PATH" ]; then
+        cd "$BACKUP_PATH" || exit 1
+        dirs=$(ls -1d [0-9]* | sort | head -n -$((KEEP_BACKUPS - 1)))
+        if [ -n "$dirs" ]; then
+            for dir in $dirs; do
+                echo "Deleting $BACKUP_PATH/$dir"
+                echo hls00-passwd | sudo -S rm -rf "$dir"
+            done
+        else
+            echo "No backups to delete in $BACKUP_PATH"
+        fi
+    else
+        echo "Directory $BACKUP_PATH not found, skipping..."
+    fi
+done
+```
+
+使用情境：備份目錄數量過多、磁碟空間不足時，在管理伺服器 HLS00 手動執行：
+
+```bash
+hls00@HLS00:/opt/labManageKit$ ./cleandb.sh
+```
+
+有超過保留數的舊備份時，每刪除一個目錄會印出 Deleting 路徑/日期目錄；沒有需要刪除的備份時印出 No backups to delete in 路徑；備份路徑不存在時印出 Directory 路徑 not found, skipping...。清理後只剩最新 27 個日期目錄，例如 2026-10-26 查詢 backupdb/ 的結果：
+
+```bash
+hls00@HLS00:/opt/labManageKit/backupdb$ ls
+2026-09-30  2026-10-03  2026-10-06  2026-10-09  2026-10-12  2026-10-15  2026-10-18  2026-10-21  2026-10-24
+2026-10-01  2026-10-04  2026-10-07  2026-10-10  2026-10-13  2026-10-16  2026-10-19  2026-10-22  2026-10-25
+2026-10-02  2026-10-05  2026-10-08  2026-10-11  2026-10-14  2026-10-17  2026-10-20  2026-10-23  2026-10-26
+```
+
+> [註]
+> (1) 腳本中的 sudo 密碼 hls00-passwd 需改為 HLS00 實際的 sudo 密碼。
+> (2) BACKUP_DIRS 需與 start_docker_boledudb.sh / sync_db.sh 實際寫入的備份目錄一致，可用 ls -ld /opt/labManageKit/backupdb 確認 /opt/labManageKit/backupdb 是否指向 /mnt/LabData/hls00/backupdb。
+> (3) 只會刪除名稱以數字開頭的目錄，其他名稱的目錄 (例如修復資料庫前手動保留的 before_repair) 不會被清理，需手動移除。
+> (4) 每日 06:20 自動執行，早於 06:25 的管理伺服器重啟，在 hls00 使用者的 crontab (crontab -e，不加 sudo) 設定如下：
+
+```
+# m h  dom mon dow   command
+20 6 * * * /opt/labManageKit/cleandb.sh
+25 6 * * * echo boleduhls00 | sudo -S reboot
 ```
 
 ---
