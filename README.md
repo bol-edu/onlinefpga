@@ -376,9 +376,9 @@ python3 test.py
 
 ```bash
 #!/bin/bash
-echo hls00-passwd | sudo -S rm -rf "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
-echo hls00-passwd | sudo -S mkdir "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
-echo hls00-passwd | sudo -S cp -rf /mnt/LabData/hls00/boledudb "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
+echo hls00-passwd | sudo -S rm -rf "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
+echo hls00-passwd | sudo -S mkdir "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
+echo hls00-passwd | sudo -S cp -rf /mnt/LabData/hls00/boledudb "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
 sleep 10
 docker rm -f boledudb
 docker run -v /mnt/LabData/hls00/boledudb/:/data/db --name boledudb -d mongo:6.0.1
@@ -1143,11 +1143,11 @@ pkill -f active_monitord.py
 手動備份 MongoDB 資料庫到備份目錄：
 
 ```bash
-#!/bin/bash
-echo hls00-passwd | sudo -S rm -rf "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
-echo hls00-passwd | sudo -S mkdir "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
-echo hls00-passwd | sudo -S cp -rf /mnt/LabData/hls00/boledudb "/mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
-echo "synchronize nfs boledudb to /mnt/LabData/hls00/backupdb/$(date +"%Y-%m-%d")"
+echo hls00-passwd | sudo -S rm -rf "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
+echo hls00-passwd | sudo -S mkdir "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
+echo hls00-passwd | sudo -S cp -rf /mnt/LabData/hls00/boledudb "/opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
+
+echo "synchronize nfs boledudb to /opt/labManageKit/backupdb/$(date +"%Y-%m-%d")"
 ```
 
 ---
@@ -1231,7 +1231,7 @@ Total tenants: 7
 KEEP_BACKUPS=28
 
 BACKUP_DIRS=(
-    "/mnt/LabData/hls00/backupdb"
+    "/opt/labManageKit/backupdb"
 )
 
 for BACKUP_PATH in "${BACKUP_DIRS[@]}"; do
@@ -1240,14 +1240,14 @@ for BACKUP_PATH in "${BACKUP_DIRS[@]}"; do
         dirs=$(ls -1d [0-9]* | sort | head -n -$((KEEP_BACKUPS - 1)))
         if [ -n "$dirs" ]; then
             for dir in $dirs; do
-                echo "Deleting $BACKUP_PATH/$dir"
-                echo hls00-passwd | sudo -S rm -rf "$dir"
+                echo "正在刪除 $BACKUP_PATH/$dir"
+                echo boleduhls00 | sudo -S rm -rf "$dir"
             done
         else
-            echo "No backups to delete in $BACKUP_PATH"
+            echo "$BACKUP_PATH 無需刪除的備份"
         fi
     else
-        echo "Directory $BACKUP_PATH not found, skipping..."
+        echo "目錄 $BACKUP_PATH 不存在，跳過..."
     fi
 done
 ```
