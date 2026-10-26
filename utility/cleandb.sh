@@ -3,7 +3,6 @@ KEEP_BACKUPS=28
 
 BACKUP_DIRS=(
     "/opt/labManageKit/backupdb"
-    "/mnt/HLSNAS/backupdb"
 )
 
 for BACKUP_PATH in "${BACKUP_DIRS[@]}"; do
