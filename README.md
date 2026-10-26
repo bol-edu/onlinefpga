@@ -754,8 +754,8 @@ OnlineFPGA 管理系統開發程式為 Python3，系統程式碼放置於管理�
 | `sync_onlinefpga.sh` | 手動同步編譯後的 `.pyc` 到使用者目錄（**需設置 sudo 密碼**） |
 | `u50_rented.log` | HLS01 ~ HLS05 FPGA 伺服器租用紀錄檔案（**需有 FPGA 伺服器**） |
 | `u50_tenant_util.py` | 使用者帳戶工具程式（管理 U50 綁定紀錄與專案帳號）（**需有 FPGA 伺服器**） |
-| `cleandb.sh` | 清理HLSNAS的backupdb目錄下較舊的備份，只保留最新27個日期目錄 |
-| `fix_mongodb.sh` | HLS00非正常斷電後，修復被鎖定的MongoDB資料庫 (見3-1-10 Troubleshooting) |
+| `utility/cleandb.sh` | 清理HLSNAS的backupdb目錄下較舊的備份，只保留最新27個日期目錄 |
+| `utility/fix_mongodb.sh` | HLS00非正常斷電後，修復被鎖定的MongoDB資料庫 (見3-1-10 Troubleshooting) |
 | `utility/check_ssh_connection.sh` | 查詢最近的 SSH 連線詳細資料 |
 | `utility/list_subdir_size.sh` | 查詢特定目錄下所有子目錄的使用空間（**需手動輸入 sudo 密碼**） |
 
