@@ -8,6 +8,8 @@ OnlineFPGA 是由 [Boledu 基金會](https://www.boledu.org/) 為推廣 IC 設�
 
 從 2022 年底到 2025 年底，已累計約 600 個註冊使用者、數千次的登入使用。
 
+![arch](https://github.com/user-attachments/assets/7ec83975-e36d-4036-894d-a05c20d3cc60)
+
 **OnlineFPGA 管理系統主要特性：**
 
 - 限制每位使用者同時間只能租用一個 FPGA
