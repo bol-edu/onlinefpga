@@ -148,12 +148,12 @@ def deldb(users):
 if __name__ == '__main__':	
 	if len(sys.argv) < 2:
 		print('Usage:')
-		print('python3 u50_tenant.py list')
-		print('python3 u50_tenant.py checkdb')
-		print('python3 u50_tenant.py del all')
-		print('python3 u50_tenant.py del account')		
-		print('python3 u50_tenant.py deldb all')		
-		print('python3 u50_tenant.py deldb account')
+		print('python3 u50_tenant_util.py list')
+		print('python3 u50_tenant_util.py checkdb')
+		print('python3 u50_tenant_util.py del all')
+		print('python3 u50_tenant_util.py del account')		
+		print('python3 u50_tenant_util.py deldb all')		
+		print('python3 u50_tenant_util.py deldb account')
 		print('\n')
 		sys.exit()
 	op = sys.argv[1]	

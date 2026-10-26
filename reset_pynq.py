@@ -55,21 +55,21 @@ if __name__ == '__main__':
     PynqCmdList = []
     if board == 'pynq':    	
     	RemoveList = os.listdir('/home/xilinx/jupyter_notebooks/')
-    	PynqCmdList = ['echo xilinx | sudo -S pkill -f jupyter-notebook', \
-    	               'echo xilinx | sudo -S mv ./jupyter_notebook_config.json /root/.jupyter/', \
-    	               'echo xilinx | sudo -S /bin/bash /usr/local/bin/start_jupyter.sh']
+    	PynqCmdList = ['echo PYNQ_PASSWD | sudo -S pkill -f jupyter-notebook', \
+    	               'echo PYNQ_PASSWD | sudo -S mv ./jupyter_notebook_config.json /root/.jupyter/', \
+    	               'echo PYNQ_PASSWD | sudo -S /bin/bash /usr/local/bin/start_jupyter.sh']
     if board == 'kv260':
     	RemoveList = os.listdir('/home/root/jupyter_notebooks/')
-    	PynqCmdList = ['echo boledukv260 | sudo -S pkill -f jupyter-notebook', \
-    	               'echo boledukv260 | sudo -S mv ./jupyter_notebook_config.json /root/.jupyter/', \
-    	               'echo boledukv260 | sudo -S /bin/bash /usr/local/bin/start_jupyter.sh']
+    	PynqCmdList = ['echo KV260_PASSWD | sudo -S pkill -f jupyter-notebook', \
+    	               'echo KV260_PASSWD | sudo -S mv ./jupyter_notebook_config.json /root/.jupyter/', \
+    	               'echo KV260_PASSWD | sudo -S /bin/bash /usr/local/bin/start_jupyter.sh']
     	
     for i in RemoveList:
     	if not i in RemoveExcept or 'Untitled Folder' in i:
     		if board == 'pynq':
-    			os.system('echo xilinx | sudo -S rm -rf /home/xilinx/jupyter_notebooks/' + '\'' + i + '\'')
+    			os.system('echo PYNQ_PASSWD | sudo -S rm -rf /home/xilinx/jupyter_notebooks/' + '\'' + i + '\'')
     		if board == 'kv260':
-    			os.system('echo boledukv260 | sudo -S rm -rf /home/root/jupyter_notebooks/' + '\'' + i + '\'')
+    			os.system('echo KV260_PASSWD | sudo -S rm -rf /home/root/jupyter_notebooks/' + '\'' + i + '\'')
     		time.sleep(1)
     
     for i in PynqCmdList:

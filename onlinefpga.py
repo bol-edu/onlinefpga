@@ -140,11 +140,26 @@ def list_device(device_type):
 		if 'pynq_' in str(i) and not (device_type == 'kv260' or device_type == 'u50' or device_type == 'vck5k'):
 			print (str(i).replace('\'status', '  \'status'))
 	for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1}):
-		if 'pynqzu' in str(i) and not (device_type == 'kv260' or device_type == 'u50' or device_type == 'vck5k'):
-			print (str(i))		
-	for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1}):
 		if 'kv260' in str(i) and not (device_type == 'pynq' or device_type == 'u50' or device_type == 'vck5k'):
-			print (str(i).replace('\'status', ' \'status'))	
+			print (str(i).replace('\'status', ' \'status'))
+	if U50QueueEnable:
+		for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1, 'user': 1, 'queue_user':1, 'u50_board':1, 'tenant': 1}):
+			if 'u50' in str(i) and not (device_type == 'pynq' or device_type == 'kv260'):
+				u50_alias_device = U50Alias[int(i['device'].replace('u50_',''))-1]
+				if not u50_alias_device == '':
+					print (str(i).replace('\'status', ' \'status').replace(i['device'], u50_alias_device).replace('u50_board', 'vck_board'))
+				else:
+					if not device_type == 'vck5k':
+						print (str(i).replace('\'status', '   \'status'))
+	else:
+		for i in col_device.find({}, {"_id":0, 'device': 1, 'status': 1, 'user': 1, 'u50_board':1, 'tenant': 1}):
+			if 'u50' in str(i) and not (device_type == 'pynq' or device_type == 'kv260'):
+				u50_alias_device = U50Alias[int(i['device'].replace('u50_',''))-1]
+				if not u50_alias_device == '':
+					print (str(i).replace('\'status', ' \'status').replace(i['device'], u50_alias_device).replace('u50_board', 'vck_board'))
+				else:
+					if not device_type == 'vck5k':
+						print (str(i).replace('\'status', '   \'status'))
 	print ('\n')
 
 	
@@ -325,7 +340,8 @@ def return_device(email, device):
 
 def reg_or_login_menu():
 	print('\n')
-	print('[1] login')
+	print('[1] register an BoLedu account')
+	print('[2] already have an account')
 	print('[0] exit OnlineFPGA service')
 	print('\n')
 
@@ -342,7 +358,9 @@ def service_menu():
 def device_menu():
 	print('\n')
 	print('[1] pynq')
-	print('[2] kv260')	
+	print('[2] kv260')
+	print('[3] u50')
+	print('[4] vck5k')
 	print('\n')	
 	
 		
@@ -355,7 +373,7 @@ def rent_menu():
 	
 def job_menu():
 	print('\n')
-	print('[1] vitis tool')
+	print('[1] vitis tool and u50 validation')
 	#print('[2] only u50 validation')
 	print('\n')		
 	
@@ -376,9 +394,9 @@ def service(pts_pid):
 			try:
 				sub_option = int(input('please enter your option:\n>> '))
 			except:
-				sub_option = 3
-			device_type = 'pynq' if sub_option == 1 else 'kv260' if sub_option == 2 else ''			
-			if sub_option == 1 or sub_option == 2:				
+				sub_option = 5
+			if sub_option == 1 or sub_option == 2:
+				device_type = 'pynq' if sub_option == 1 else 'kv260'
 				rent_menu()
 				try:
 					subsub_option = int(input('please enter your option:\n>> '))
@@ -387,8 +405,12 @@ def service(pts_pid):
 				if subsub_option == 1:
 					list_device(device_type)
 					try:
-						device = input('please enter %s device name which you want to rent:\n>> ' %(device_type))
-						exist = check_device_exist(device) if not 'u50' in device and not 'vck5k' in device else ''						
+						if sub_option == 1:
+							device = input('please enter pynq device name which you want to rent:\n>> ')
+							exist = check_device_exist(device) if not 'u50' in device and not 'kv260' in device else ''
+						else:
+							device = input('please enter kv260 device name which you want to rent:\n>> ')
+							exist = check_device_exist(device) if not 'u50' in device and not 'pynq' in device else ''						
 						if 'is existing' in exist:
 							job = 'pynq' if 'pynq' in device else 'kv260'
 							rent_device(email, device, job)
@@ -406,7 +428,48 @@ def service(pts_pid):
 					else:
 						print('no available device, rent later')
 				else:
-					print('your input is invalid')			
+					print('your input is invalid')
+			elif sub_option == 3 or sub_option == 4:
+				device_type = 'u50' if sub_option == 3 else 'vck5k'
+				subsub_option = 1
+				if sub_option == 3:
+					job_menu()
+					try:
+						subsub_option = int(input('please enter your option:\n>> '))
+					except:
+						subsub_option = 2											
+				if subsub_option == 1:
+					list_device(device_type)
+					try:						
+						device = input('please enter %s device name which you want to rent:\n>> ' %(device_type))
+						exist = ''
+						if 'pynq' in device or 'kv260' in device:
+							pass
+						elif sub_option == 3 and 'vck5k' in device:
+							pass
+						elif sub_option == 4 and 'u50' in device:
+							pass
+						elif sub_option == 3 and 'u50' in alias_to_vck5k(device):
+							exist = check_device_exist(device)
+						elif sub_option == 4:
+							device = alias_to_u50(device)
+							exist = check_device_exist(device)
+						else:
+							pass	
+						if 'is existing' in exist:
+							available_or_not = check_available_u50_device(device, 'u50_validation')
+							if U50QueueEnable:
+								rent_device_with_queue(email, device, 'u50_validation')
+							elif not 'not available device' in available_or_not:
+								rent_device(email, device, 'u50_validation')
+							else:
+								print('no available device, rent later')								
+						else:
+							print('device is not existing')						
+					except:
+						print('your input is invalid')		
+				else:
+					print('your input is invalid')
 			else:
 				print('your input is invalid')
 				
@@ -452,11 +515,42 @@ if __name__ == '__main__':
 	  try:
 	  	option = int(input('please enter your option:\n>> '))
 	  except:
-	  	option = 2	  		  
+	  	option = 3	  		  
 	  	
 	  while option != 0:
 	  	if option == 1:
-	  		
+	  		print('register your account in boledu')
+	  		try:	  			
+	  			email = input('please enter your email:\n>> ')
+	  			email_invalid = check_email_invalid(email)
+	  			if email_invalid:
+	  				print(email_invalid)
+	  			else:
+	  				email_exist = check_email_exist(email)
+	  				if 'available' in email_exist:
+	  					generated_code = get_random_passwd(VaildCodeLength)
+	  					name = input('please enter your name:\n>> ')
+	  					password = input('please enter your password:\n>> ')
+	  					if not name or not password:
+	  						print('your name or password is invalid')
+	  						send_result = 'failed'
+	  					else:
+	  						send_result = send_code_by_email(generated_code, email, name, password)
+	  					if not 'failed' in send_result:
+	  						print('wait your validation code to email box')
+	  						validation_code = input('please enter validation code:\n>> ')
+	  						if generated_code == validation_code:
+	  							res = col_user.insert_one({'email':email,'name':name,'password':password,\
+	  								    'date':datetime.now().strftime('%Y/%m/%d')})
+	  							print('you have completed registration in Boledu\'s OnlineFPGA')
+	  						else:
+	  							print('your validation code is incorrect')
+	  				else:
+	  					print(email_exist)
+	  		except:
+	  			print('your input is invalid')		
+	  	
+	  	elif option == 2:
 	  		try:
 	  			email = input('please enter your register email:\n>> ')
 	  			email_invalid = check_email_invalid(email)
@@ -479,6 +573,6 @@ if __name__ == '__main__':
 	  	try:
 	  		option = int(input('please enter your option:\n>> '))
 	  	except:
-	  		option = 2	  		  		  		  	  
+	  		option = 3	  		  		  		  	  
 	  	
 	  os.system('kill -9 ' + pts_pid)

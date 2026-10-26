@@ -53,16 +53,18 @@ OnlineFPGA 對外提供一個 IP address，透過 router port forwarding 的不�
 
 #### Server IP 分配
 
-伺服器透過 SSH 連線，外部使用者以 `ssh <user>@<external_ip> -p <external_port>` 連入。
+伺服器透過 SSH 連線，外部使用者以 `ssh <user>@<external_ip> -p <external_port>` 連入（例如 `-p 1000` 連到 HLS00 的 port 22）。
 
-| 名稱 | LAN IP | External Port | AnyDesk |
-|:---:|:---:|:---:|:---:|
-| HLS00 | 192.168.1.10 | 1000 | 100000001 |
-| HLS01 | 192.168.1.11 | 1100 | 100000002 |
-| HLS02 | 192.168.1.12 | 1200 | 100000003 |
-| HLS03 | 192.168.1.13 | 1300 | 100000004 |
-| HLS04 | 192.168.1.14 | 1400 | 100000005 |
-| HLS05 | 192.168.1.15 | 1500 | 100000006 |
+| 名稱 | LAN IP | External Port | Internal Port | AnyDesk |
+|:---:|:---:|:---:|:---:|:---:|
+| HLS00 | 192.168.1.10 | 1000:1099 | 22 | 100000001 |
+| HLS01 | 192.168.1.11 | 1100:1199 | 22 | 100000002 |
+| HLS02 | 192.168.1.12 | 1200:1299 | 22 | 100000003 |
+| HLS03 | 192.168.1.13 | 1300:1399 | 22 | 100000004 |
+| HLS04 | 192.168.1.14 | 1400:1499 | 22 | 100000005 |
+| HLS05 | 192.168.1.15 | 1500:1599 | 22 | 100000006 |
+
+> **注意：** 上表是外部連線經 router 的對應。管理伺服器 HLS00 在內網是直接以 `192.168.1.1N:1N00`（HLS01 為 `192.168.1.11:1100`）連到 HLS01 ~ HLS05（`monitord.py` 的 nc / SSH 與 `sync_hlsclient.sh` 的 scp），不經過 router，所以 HLS01 ~ HLS05 的 sshd 除了 22 之外也要監聽 1N00（見 3-2）。
 
 #### PYNQ-Z2 IP 分配
 
@@ -123,6 +125,9 @@ KV260 透過 Jupyter Notebook 服務連線，外部使用者以 `http://<externa
 > | PYNQ-Z2 (Jupyter) | `'2' + 設備編號 + '00'` | PYNQ01 → `20100` |
 > | KV260 (Jupyter) | `(60 + 設備編號) * 100` | KV260_01 → `6100` |
 > | U50 / VCK5K (SSH) | `'1' + 設備編號 + '00'` | U50_01 → `1100` |
+>
+> U50 / VCK5K 的這個 port 在 `MonitordInLab = True`（預設）時也是 HLS00 內網連線用的 port（`192.168.1.11:1100`）；PYNQ-Z2 / KV260 在內網則固定用 `DefaultSSHPort = 22`。
+
 ---
 
 ### 3. OnlineFPGA 管理伺服器
@@ -162,7 +167,7 @@ sudo chmod +x /opt/labManageKit/*.sh /opt/labManageKit/utility/*.sh
 > 後續更新套件可執行 `cd /opt/labManageKit && sudo git pull`。`config.py` 內的 IP、帳號密碼等需依實際環境修改（見 3-5 的 config.py 說明）；若已修改，`git pull` 前請先備份。
 
 ## 3-1. 管理伺服器設置
-本章節腳本範例中使用 `hls00-passwd` 作為管理伺服器的 sudo 密碼佔位符，實際部署時**務必替換為您自行設定的實際密碼**，並確認腳本中所有出現 `hls00-passwd` 的位置皆已更新。
+本章節腳本範例中使用 `hls00-passwd` 作為管理伺服器的 sudo 密碼佔位符，實際部署時**務必替換為您自行設定的實際密碼**，並確認腳本中所有出現 `hls00-passwd` 的位置皆已更新（`start_docker_boledudb.sh`、`sync_db.sh`、`sync_onlinefpga.sh`、`utility/cleandb.sh` 及 3-1-8 的 crontab），可用 `grep -rn 'hls00-passwd' /opt/labManageKit` 確認。FPGA 伺服器的 `hls01-passwd` ~ `hls05-passwd` 則在 `sync_hlsclient.sh` 及 `config.py` 的 `U50UserPassWordList` 中替換。
 
 ### 3-1-1. 安裝 Docker
 
@@ -261,6 +266,21 @@ df -h
 ```bash
 sudo mkdir -p /mnt/LabData/hls00/boledudb /mnt/LabData/hls00/backupdb
 sudo ln -s /mnt/LabData/hls00/backupdb /opt/labManageKit/backupdb
+```
+
+**c. 掛載 U50 專案目錄 /mnt/HLSNAS（有 FPGA 伺服器時）**
+
+HLS01 ~ HLS05 的 U50 專案帳號建立在 NAS 的 `/mnt/HLSNAS/`（`config.py` 的 `U50UserHome`）。管理伺服器 HLS00 也要掛載同一個目錄：`monitord.py` 的 `fpga_init` 會讀取 `/mnt/HLSNAS/` 統計各台 U50 的租戶數，`u50_tenant_util.py` 的 `list` / `checkdb` 在 HLS00 執行時也會讀取。
+
+```bash
+sudo mkdir -p /mnt/HLSNAS
+sudo nano /etc/fstab
+```
+
+加入以下掛載設定（NAS 共用目錄請依實際配置修改，HLS01 ~ HLS05 使用相同設定）：
+
+```
+192.168.1.2:/volume2/LabData /mnt/HLSNAS nfs defaults 0 0
 ```
 
 ---
@@ -488,7 +508,7 @@ sudo cp -a /mnt/LabData/hls00/boledudb /mnt/LabData/hls00/backupdb/before_repair
 cd /opt/labManageKit/utility
 sudo chmod +x *.sh
 ./fix_mongodb.sh
-./start_docker_boledudb.sh
+../start_docker_boledudb.sh
 docker ps
 ```
 
@@ -510,6 +530,19 @@ Vitis/XRT 設定檔案範例路徑（若系統安裝路徑不同，需對應修�
 ```
 
 請先測試 HLS01 ~ HLS05 FPGA 伺服器在不透過管理系統的情況下，也能正常運作 Vitis/XRT 及存取 FPGA。
+
+**其他前置條件：**
+
+- 主機名稱需為 `HLS01` ~ `HLS05`，管理帳號為 `hls01` ~ `hls05`。`manage_user.py` 及 `u50_tenant_util.py` 由 hostname 取得編號，再到 `config.py` 的 `U50UserPassWordList` 找出含該編號的密碼，所以各台的 sudo 密碼字串需包含自己的編號（例如 `hls01-passwd` 含 `01`）。
+- 需有 `docker` 群組：`manage_user.py` 會把 U50 專案帳號加入 `render` 及 `docker` 群組（`config.py` 的 `U50DevGroup`、`U50DockerGroup`）。已安裝 Docker 即有此群組，否則執行 `sudo groupadd docker`。
+- sshd 需同時監聽 22（外部經 router `1N00:1N99 → 22` 連入）及 1N00（HLS00 在內網直接連線，見「Server IP 分配」的注意事項）。以 HLS01 為例，在 `/etc/ssh/sshd_config` 加入以下兩行後執行 `sudo systemctl restart ssh`：
+
+```
+Port 22
+Port 1100
+```
+
+- 掛載 NAS 到 `/mnt/HLSNAS`（設定方式同 3-1-3 c）。
 
 ---
 
@@ -543,10 +576,18 @@ fi
 sudo vim /etc/rc.local
 ```
 
-設定 FPGA 存取權限，使一般使用者（租戶）都可以讀寫：
+設定 FPGA 存取權限，使一般使用者（租戶）都可以讀寫。Ubuntu 20.04 預設沒有 `/etc/rc.local`，新建檔案時第一行需為 `#!/bin/bash`、最後一行為 `exit 0`：
 
 ```bash
+#!/bin/bash
 chmod o=rw /dev/dri/render*
+exit 0
+```
+
+設為可執行後，systemd 的 `rc-local` 服務會在每次開機時執行：
+
+```bash
+sudo chmod +x /etc/rc.local
 ```
 
 ---
@@ -614,6 +655,8 @@ python3 -c "import pynq; print(pynq.__version__)"
 | Jupyter 工作目錄 | `/home/xilinx/jupyter_notebooks/` | `/home/root/jupyter_notebooks/` |
 
 上述參數是提供給 `monitord.py` 用來連線及啟動 `reset_pynq.py` 使用。
+
+> **注意：** `reset_pynq.py` 內的 sudo 指令使用佔位符 `PYNQ_PASSWD` / `KV260_PASSWD`（例如 `echo PYNQ_PASSWD | sudo -S ...`）。`monitord.py` 派送時由 `fill_reset_pynq()` 讀取 `reset_pynq.py`，換成 `config.py` 的 `PynqUserPasswd` / `Kv260UserPasswd` 後直接寫到開發板，所以映像檔的密碼不同時只需修改 `config.py`，`reset_pynq.py` 保持佔位符即可。
 
 **reset_pynq.py 執行流程：**
 
@@ -717,6 +760,8 @@ echo -e "${Reset}\n"
 python3 onlinefpga.pyc
 ```
 
+使用者以 SSH 登入後會先看到 `[1] register an BoLedu account`、`[2] already have an account`、`[0] exit OnlineFPGA service` 選單。選 `[1]` 自行註冊時，系統會寄送驗證碼到使用者的 email（需先設定 3-5 `config.py` 的 Gmail 參數）；選 `[2]` 登入後可列出、租用及歸還 PYNQ-Z2 / KV260 / U50 / VCK5K。
+
 7. 編譯 OnlineFPGA 系統程式：
 
 ```bash
@@ -750,8 +795,8 @@ echo "synchronize config.pyc onlinefpga.pyc to OnlineFPGA boleduuser"
 
 | 帳號 | 密碼 | 連線位置 | 可見設備 |
 | --- | --- | --- | --- |
-| `boleduuser` | `boleduuser` | `<external_ip>:1000` | 所有設備（PYNQ-Z2 / KV260 / U50） |
-| `boledupynq` | `boledupynq` | `<external_ip>:1000` | 僅 PYNQ-Z2 及 KV260 |
+| `boleduuser` | `boleduuser` | `<external_ip>:1000` | 所有設備（PYNQ-Z2 / KV260 / U50 / VCK5K），使用本套件的 `onlinefpga.py` |
+| `boledupynq` | `boledupynq` | `<external_ip>:1000` | 僅 PYNQ-Z2 及 KV260，需另外客製化 `onlinefpga.py`（見下方說明） |
 
 > **客製化選單：** 若要修改使用者可見設備，需修改 `onlinefpga.py` 再重新編譯後，執行 `sync_onlinefpga.sh` 複製到對應的使用者目錄，視需要修改該使用者的 `.bashrc`。
 
@@ -772,7 +817,7 @@ OnlineFPGA 管理系統開發程式為 Python3，系統程式碼放置於管理�
 | `manage_dbuser.py` | 建立（支援 CSV 匯入）/ 刪除資料庫中的使用者資料 |
 | `manage_user.py` | 派送到 HLS 伺服器後，可建立 / 刪除指定使用者帳戶（**需有 FPGA 伺服器**） |
 | `monitord.py` | OnlineFPGA 系統監控及管理主程式 |
-| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面 （**PYNQ-Z2 / KV260 使用者選單版本**）|
+| `onlinefpga.py` | OnlineFPGA 系統的使用者選單介面：註冊 / 登入，列出、租用、歸還 PYNQ-Z2 / KV260 / U50 / VCK5K |
 | `__pycache__/` | 存放編譯後的 OnlineFPGA 程式 |
 | `registration.csv` | CSV 範例檔案用來批次建立使用者資料 |
 | `reset_pynq.py` | 派送到 PYNQ-Z2 / KV260 用來重啟 Jupyter Notebook 並設置新的登入密碼（**需修改程式碼，若不是PYNQ 2.7版**） |
@@ -802,8 +847,10 @@ sudo pip3 install paramiko requests apscheduler pymongo email-validator flask
 **安裝 Ubuntu 相依套件：**
 
 ```bash
-sudo apt install -y sshpass
+sudo apt install -y sshpass mtr-tiny netcat-openbsd
 ```
+
+> `mtr` 用於 `monitord.py` 判斷目前走的是 `ExternalIP` 或 `ExternalIPBak` 外網；`nc` 用於 U50 / VCK5K 的狀態檢查（`nc -w 5 <ip> <port>`：在 5 秒內連到該 HLS 的 SSH port，有收到 SSH 版本字串即判定伺服器在線）。
 
 > **權限設定：** 執行 `sudo chmod +x /opt/labManageKit/*.sh /opt/labManageKit/utility/*.sh` 使所有 sh 檔案可以直接執行。`/opt/labManageKit` 目錄下有異動檔案時需要 `sudo` 權限。
 
@@ -874,7 +921,7 @@ OnlineFPGA 系統參數定義檔案，大部分參數請使用預設值。異動
 
 ```python
 RentedPynqMinutes = 60       # PYNQ-Z2 預設 60 分鐘
-RentedKv260Minutes = 60      # KV260 預設 60 分鐘
+RentedKv260Minutes = 120     # KV260 預設 120 分鐘
 RentedU50Minutes = 120       # U50 預設 120 分鐘
 RentedVCK5KMinutes = 240     # VCK5K 預設 240 分鐘
 ```
@@ -884,9 +931,8 @@ RentedVCK5KMinutes = 240     # VCK5K 預設 240 分鐘
 管理系統選單出現的設備代號可透過以下參數調整，故障的MPSoC代號可跳過：
 
 ```python
-PynqZ2List = ['01', '03', '04', '05', '06', '07',
-              '09', '11', '12', '13', '14', '16', '17', '18']
-Kv260List = ['01', '02', '03', '04', '05', '06', '07', '08', '09']
+PynqZ2List = ['01', '02', '03', '04', '05', '06', '07', '09', '10', '11', '12']    # 依實際可用的板子填寫，故障板可跳過
+Kv260List = ['02', '03', '04', '05', '06', '08', '09', '10', '11', '12', '13', '20']
 ```
 
 > **注意：** 新增 PYNQ-Z2 / KV260 設備時，router 裡也要設定對應的 MAC address 及內網 IP address。
@@ -904,15 +950,17 @@ U50BoardAvailable = [1, 1, 1, 1, 1, 1]
 U50Alias = ['', '', '', '', 'vck5k_01', '']
 ```
 
-> HLS06 伺服器設置的管理帳號也要為 `hls06`。若 HLS06 再安裝一個 VCK5K 卡，則 `U50Alias = ['', '', '', '', 'vck5k_01', 'vck5k_02']`。新伺服器應設置為靜態 IP，router 裡也要確認已連上線。
+> HLS06 伺服器設置的管理帳號也要為 `hls06`，sudo 密碼字串需包含編號 `06`（例如 `hls06-passwd`），程式以此比對各台密碼。若 HLS06 再安裝一個 VCK5K 卡，則 `U50Alias = ['', '', '', '', 'vck5k_01', 'vck5k_02']`。新伺服器應設置為靜態 IP，router 裡也要確認已連上線。
 
 **(4) 外網 IP 切換**
 
 當預設外網故障時（如 router 切換到備用外網），使用者入口 IP 會改為 `ExternalIPBak` 設定值。此時管理者也需要執行 `python3 active_monitord.py fpga_init` 重設 monitord 的外網 IP。
 
+> 只有一組外網時填 `ExternalIP` / `ExternalIPGateway` 即可，`ExternalIPBak` / `ExternalIPBakGateway` 保留佔位符，`monitord.py` 的 `find_external_ip()` 會固定回傳 `ExternalIP`。有兩組外網時，線路切換需由 router 自動 switch，monitord 以 `mtr` 看到 `ExternalIPBakGateway` 時才改用 `ExternalIPBak`。
+
 ```python
-ExternalIP = '<external_ip1>'
-ExternalIPBak = '<external_ip2>'
+ExternalIP = '140.112.207.100'       # 主要外網
+ExternalIPBak = '<external_ip2>'     # 備援外網，沒有時保留佔位符即可
 ```
 
 **(5) 內網網段**
@@ -947,7 +995,7 @@ RetryMinutes = 30     # 定期重試 unknown 狀態設備的間隔（分鐘）
 U50UserHome = '/mnt/HLSNAS/'    # 預設的 U50 專案帳號建立路徑
 ```
 
-> 需要在 HLS01 ~ HLS05 伺服器上，建立/mnt/HLSNAS/目錄並掛載到NAS儲存目錄，例如是/Volume2/LabData，並設定NAS目錄可被共用的權限，用來儲存Vitis/Vivado專案的GB資料
+> 需要在 HLS01 ~ HLS05 伺服器及管理伺服器 HLS00 上，建立 `/mnt/HLSNAS/` 目錄並掛載到 NAS 儲存目錄（例如 `/volume2/LabData`，見 3-1-3 c），並設定 NAS 目錄可被共用的權限，用來儲存 Vitis/Vivado 專案的 GB 資料。
 
 **完整 config.py 參數參考：**
 
@@ -967,7 +1015,7 @@ MongoPort = 27017
 MonitordIP = '192.168.1.10'
 MonitordPort = 5000
 RentedPynqMinutes = 60
-RentedKv260Minutes = 60
+RentedKv260Minutes = 120
 RentedVitisMinutes = 60
 RentedU50Minutes = 120
 RentedU50JobMinutes = 100
@@ -975,9 +1023,8 @@ RentedU50BatchHours = 6
 RentedVCK5KMinutes = 240
 PasswdLength = 6
 
-PynqZ2List = ['01', '03', '04', '05', '06', '07',
-              '09', '11', '12', '13', '14', '16', '17', '18']
-Kv260List = ['01', '02', '03', '04', '05', '06', '07', '08', '09']
+PynqZ2List = ['01', '02', '03', '04', '05', '06', '07', '09', '10', '11', '12']
+Kv260List = ['02', '03', '04', '05', '06', '08', '09', '10', '11', '12', '13', '20']
 
 PynqUserName = 'xilinx'
 PynqUserPasswd = 'xilinx'
@@ -1005,8 +1052,8 @@ U50DockerGroup = 'docker'
 U50RentedLogFile = '/opt/labManageKit/u50_rented.log'
 
 NcCommand = 'nc -w 5'
-ExternalIP = '<external_ip1>'
-ExternalIPGateway = '<external_gateway1>'
+ExternalIP = '140.112.207.100'
+ExternalIPGateway = '140.112.207.254'
 ExternalIPBak = '<external_ip2>'
 ExternalIPBakGateway = '<external_gateway2>'
 InternalSec = '192.168.1.'
@@ -1072,11 +1119,13 @@ python3 list_user.py all                    # 列出所有使用者資料
 python3 list_user.py dump                   # 依序印出所有使用者的 email、名字及註冊日期
 python3 list_user.py online                 # 列出目前在線使用者租用紀錄
 python3 list_user.py rent_date 'keyword'    # 列出租用日期符合關鍵字的使用者，如 rent_date 07/23
-python3 list_user.py monitord 'keyword'     # 列出租用紀錄符合關鍵字的使用者（email、裝置、帳號等）
+python3 list_user.py monitord 'keyword'     # 列出租用紀錄符合關鍵字的使用者（email、裝置、U50 專案帳號、job）
 python3 list_user.py filter 'keyword'       # 列出使用者資料或租用紀錄符合關鍵字的項目
 ```
 
-> `filter` 的關鍵字可為 email、名字、密碼、註冊日期、裝置（pynq、kv260、u50）及 U50 專案帳號等。例如 `python3 list_user.py filter 2023/06` 會印出所有 2023/06 註冊的使用者資料。
+> `monitord` 在租用紀錄（boledumonitord）的 email、device、ssh_passwd（U50 專案帳號，如 `01.AkkCVf`）及 job 欄位中搜尋關鍵字，不搜尋使用者名字。
+>
+> `filter` 依關鍵字內容決定搜尋範圍：關鍵字含 `pynq`、`vitis`、`u50` 或 `batch` 時，搜尋租用紀錄的 device 及 job 欄位（例如 `filter pynq_05`）；其他關鍵字則搜尋使用者資料（boleduuser）的 email、名字、密碼及註冊日期，例如 `python3 list_user.py filter 2023/06` 會印出所有 2023/06 註冊的使用者資料。`kv260` 設備或 U50 專案帳號不會被 `filter` 找到，請改用 `monitord`。
 
 ---
 
@@ -1095,9 +1144,9 @@ python3 manage_dbuser.py del email                       # 刪除指定使用者
 **registration.csv 格式範例：**
 
 ```csv
-brian89111400@gmail.com
-henrylin1208@gmail.com
-w3390500@gmail.com
+user001@gmail.com
+user002@gmail.com
+user003@gmail.com
 ```
 
 ---
@@ -1175,10 +1224,10 @@ sshpass -p "hls01-passwd" scp -P 1100 -o StrictHostKeyChecking=no ./u50_tenant_u
 HLS01 ~ HLS05 FPGA 伺服器租用紀錄檔案範例：
 
 ```
-2023/05/01 18:30:07 freudll@gapp.nthu.edu.tw returned vck5k_01
-2023/05/01 19:23:15 freudll@gapp.nthu.edu.tw rented vck5k_01
-2023/05/01 19:27:07 charlie020773@gapp.nthu.edu.tw returned u50_04
-2023/05/01 20:12:07 ray3210ray3210@gmail.com returned u50_02
+2023/05/01 18:30:07 user01@example.com returned vck5k_01
+2023/05/01 19:23:15 user01@example.com rented vck5k_01
+2023/05/01 19:27:07 user02@example.com returned u50_04
+2023/05/01 20:12:07 user03@example.com returned u50_02
 ...
 ```
 
@@ -1241,14 +1290,14 @@ for BACKUP_PATH in "${BACKUP_DIRS[@]}"; do
         dirs=$(ls -1d [0-9]* | sort | head -n -$((KEEP_BACKUPS - 1)))
         if [ -n "$dirs" ]; then
             for dir in $dirs; do
-                echo "正在刪除 $BACKUP_PATH/$dir"
-                echo boleduhls00 | sudo -S rm -rf "$dir"
+                echo "Deleting $BACKUP_PATH/$dir"
+                echo hls00-passwd | sudo -S rm -rf "$dir"
             done
         else
-            echo "$BACKUP_PATH 無需刪除的備份"
+            echo "No backups to delete in $BACKUP_PATH"
         fi
     else
-        echo "目錄 $BACKUP_PATH 不存在，跳過..."
+        echo "Directory $BACKUP_PATH not found, skipping..."
     fi
 done
 ```
@@ -1277,7 +1326,7 @@ hls00@HLS00:/opt/labManageKit/backupdb$ ls
 ```
 # m h  dom mon dow   command
 20 6 * * * /opt/labManageKit/utility/cleandb.sh
-25 6 * * * echo boleduhls00 | sudo -S reboot
+25 6 * * * echo hls00-passwd | sudo -S reboot
 ```
 
 ---

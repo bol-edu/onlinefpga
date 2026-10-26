@@ -1,4 +1,4 @@
-4#############################################################################
+#############################################################################
 # mongodb
 #############################################################################
 MongoIP = '172.17.0.2'
@@ -16,22 +16,22 @@ RentedU50JobMinutes = 100
 RentedU50BatchHours = 6
 RentedVCK5KMinutes = 240
 PasswdLength = 6
-PynqZ2List = ['01', '02', '03', '04', '05'] 
-Kv260List = []
+PynqZ2List = ['01', '02', '03', '04', '05', '06', '07', '09', '10', '11', '12']
+Kv260List = ['02', '03', '04', '05', '06', '08', '09', '10', '11', '12', '13', '20']
 PynqUserName = 'xilinx'
 PynqUserPasswd = 'xilinx'
 PynqZ2Home = '/home/xilinx/'
-PynqZUStartBase = 30
 Kv260UserName = 'ubuntu'
 Kv260UserPasswd = 'boledukv260'
 Kv260Home = '/home/ubuntu/'
 PynqPython3 = '/usr/local/share/pynq-venv/bin/python3'
 PynqResetFile = 'reset_pynq.py'
-U50List = []
-U50UserNameList = []
-U50UserPassWordList = []
-U50BoardAvailable = []
-U50Alias = []
+U50List = ['01', '02', '03', '04', '05']
+U50UserNameList = ['hls01', 'hls02', 'hls03', 'hls04', 'hls05']
+# each sudo password must contain its HLS number (01~05)
+U50UserPassWordList = ['hls01-passwd', 'hls02-passwd', 'hls03-passwd', 'hls04-passwd', 'hls05-passwd']
+U50BoardAvailable = [1, 1, 1, 1, 1]
+U50Alias = ['', '', '', '', 'vck5k_01']
 U50UserLimit = 1
 U50BatchLimit = 1
 U50Python3 = '/usr/bin/python3'
@@ -42,8 +42,8 @@ U50DevGroup = 'render'
 U50DockerGroup = 'docker'
 U50RentedLogFile = '/opt/labManageKit/u50_rented.log'
 NcCommand = 'nc -w 5'
-ExternalIP = '<external_ip1>'
-ExternalIPGateway = '<external_gateway1>'
+ExternalIP = '140.112.207.100'
+ExternalIPGateway = '140.112.207.254'
 ExternalIPBak = '<external_ip2>'
 ExternalIPBakGateway = '<external_gateway2>'
 InternalSec = '192.168.1.'

@@ -234,6 +234,11 @@ def find_external_ip():
 	return(ExternalIP)
 		
 					
+def fill_reset_pynq():
+	with open('./' + PynqResetFile) as f:
+		return f.read().replace('PYNQ_PASSWD', PynqUserPasswd).replace('KV260_PASSWD', Kv260UserPasswd)
+
+
 def reset_pynq(ip, pynq_home, USERNAME, PASSWORD, port, web_passwd):
 	try:	
 		res_device = find_device_by_internal_ip(ip) if MonitordInLab == True else find_device_by_ssh_port(port)
@@ -243,7 +248,8 @@ def reset_pynq(ip, pynq_home, USERNAME, PASSWORD, port, web_passwd):
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy())		
 		client.connect(hostname=ip, username=USERNAME, password=PASSWORD, port=port)
 		sftp = client.open_sftp()		
-		sftp.put('./' + PynqResetFile, pynq_home + PynqResetFile)
+		with sftp.open(pynq_home + PynqResetFile, 'w') as f:
+			f.write(fill_reset_pynq())
 		print('[2008] connect_to_pynq(): ' + 'sftp from %s to %s %s' %('./' + PynqResetFile, device, pynq_home + PynqResetFile))
 		sftp.close()		
 		print('[2009] connect_to_pynq(): ' + 'ssh to %s with %s:%s to set web passwd %s and restart jupyter notebook' %(device, ip, port, web_passwd))
@@ -370,13 +376,21 @@ def fpga_init_db():
 	batch_count = []
 	batch_email = []
 	for i in U50List:
+		u50_found = False
 		for j in col_device.find():
 			if 'u50_' + i in j['device']:
+				u50_found = True
 				queue_timeout.append(j['queue_timeout'])
 				queue_user.append(j['queue_user'])
 				queue_email.append(j['queue_email'])
 				batch_count.append(j['batch_count'])
 				batch_email.append(j['batch_email'])
+		if not u50_found:
+			queue_timeout.append('00:00:00')
+			queue_user.append(0)
+			queue_email.append([])
+			batch_count.append(0)
+			batch_email.append([])
 	
 	tenant = []	
 	alluser = str.split(os.popen('ls ' + U50UserHome).read())
@@ -396,9 +410,7 @@ def fpga_init_db():
 	init_pynq_record = []
 	for i in range(len(PynqZ2List)):
                   web_passwd = get_random_passwd(PasswdLength)
-                  pynq_type = 'pynq_' if int(PynqZ2List[i]) <= PynqZUStartBase else 'pynqzu_'
-                  pynq_id = PynqZ2List[i] if int(PynqZ2List[i]) <= PynqZUStartBase else str(int(PynqZ2List[i])-PynqZUStartBase).zfill(2)
-                  init_pynq_record.append({'device':pynq_type+pynq_id, 'status':'unknown', \
+                  init_pynq_record.append({'device':'pynq_'+PynqZ2List[i], 'status':'unknown', \
 		  	                  'internal_ip':InternalSec+'1'+PynqZ2List[i],'external_ip':external_ip, \
 		  	                  'web_port':'2'+PynqZ2List[i]+'00', 'ssh_port':'1'+PynqZ2List[i]+'00', 'web_passwd':web_passwd})
                   col_device.insert_one(init_pynq_record[i])
