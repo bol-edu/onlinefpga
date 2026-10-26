@@ -79,7 +79,7 @@ def add_user(username, job, timeupstr):
 			os.system('echo %s | sudo -S cp -f %s %s%s/%s' %(hls_passwd, ChangeDirPycFile, U50UserHome, username, ChangeDirPycFile))
 			time.sleep(1.5)
 			cd_alias = 'alias cd=\\\'python3 ' + ChangeDirPycFile + '\\\''
-			cd_alias = cd_alias.replace('./', '\~/')
+			cd_alias = cd_alias.replace('./', r'\~/')
 			os.system('echo %s | sudo -S echo %s >> %s%s/.bashrc' %(hls_passwd, cd_alias, U50UserHome, username))			
 			os.system('echo %s | sudo -S chown root:%s %s%s' %(hls_passwd, username, U50UserHome, username))
 			os.system('echo %s | sudo -S chmod 1775 %s%s' %(hls_passwd, U50UserHome, username))
@@ -113,7 +113,7 @@ def del_user(username, job, timeupstr):
 		py_compile.compile(TimeCheckFile, TimeCheckPycFile)
 		os.system('echo %s | sudo -S cp -f %s %s%s/%s' %(hls_passwd, TimeCheckPycFile, U50UserHome, username, TimeCheckPycFile))
 		time.sleep(1.5)
-		os.system('echo %s | sudo -S chown root %s%s/%s' %(hls_passwd, username, U50UserHome, TimeCheckPycFile))
+		os.system('echo %s | sudo -S chown root %s%s/%s' %(hls_passwd, U50UserHome, username, TimeCheckPycFile))
 		os.system('echo %s | sudo -S rm -f %s %s %s %s' %(hls_passwd, TimeCheckFile, TimeCheckPycFile, ChangeDirFile, ChangeDirPycFile))
 		os.system('echo %s | sudo -S killall -w -u %s' %(hls_passwd, username))
 		#os.system('echo %s | sudo -S userdel %s' %(hls_passwd, username))

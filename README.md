@@ -347,6 +347,13 @@ mongodb://172.17.0.2:27017
 
 點選 **Create database**，建立 `boledudb`及 3 個 collections：`boledudevice`、`boledumonitord`、`boleduuser`
 
+> 此步驟為建議。MongoDB 在第一次寫入時會自動建立不存在的 database 及 collection，所以不手動建立也能運作，各 collection 由下列程式第一次寫入時建立：
+> - `boledudevice`：`monitord.py` 的 `fpga_init_db()`（執行 `python3 active_monitord.py fpga_init` 或每日 06:00~07:00 啟動時）以 `col_device.insert_one()` 寫入所有設備
+> - `boleduuser`：`manage_dbuser.py add` 的 `col_user.insert_one()`，或使用者在 SSH 入口選 [1] 註冊時 `onlinefpga.py` 的 `col_user.insert_one()`
+> - `boledumonitord`：使用者第一次租用時，`monitord.py` 的 `fpga_rent()` 以 `col_monitord.insert_one()` 寫入租用紀錄
+>
+> 在寫入之前，`list_user.py` 等查詢程式讀到的都是空結果，不會出錯。
+
 <!-- ![建立 database](images/mongodb_create_db.png) -->
 ![260301-004](https://github.com/user-attachments/assets/f3bac6df-b034-43a6-8191-5648573191e9)
 
@@ -534,7 +541,7 @@ Vitis/XRT 設定檔案範例路徑（若系統安裝路徑不同，需對應修�
 **其他前置條件：**
 
 - 主機名稱需為 `HLS01` ~ `HLS05`，管理帳號為 `hls01` ~ `hls05`。`manage_user.py` 及 `u50_tenant_util.py` 由 hostname 取得編號，再到 `config.py` 的 `U50UserPassWordList` 找出含該編號的密碼，所以各台的 sudo 密碼字串需包含自己的編號（例如 `hls01-passwd` 含 `01`）。
-- 需有 `docker` 群組：`manage_user.py` 會把 U50 專案帳號加入 `render` 及 `docker` 群組（`config.py` 的 `U50DevGroup`、`U50DockerGroup`）。已安裝 Docker 即有此群組，否則執行 `sudo groupadd docker`。
+- 群組：`manage_user.py` 第一次建立 U50 / VCK5K 互動租用（`u50_validation`）的專案帳號時，會把帳號加入 `render` 及 `docker` 群組（`config.py` 的 `U50DevGroup`、`U50DockerGroup`）。`render` 讓專案帳號能存取 `/dev/dri/render*`，也就是 U50 / VCK5K 卡；`docker` 讓專案帳號不需 sudo 就能執行 Docker 容器（例如 Vitis AI 的開發容器）。沒有安裝 Docker 時不會有 `docker` 群組，只有加入群組這一步會失敗，帳號仍會建立；租戶需要 Docker 時才需安裝 Docker。注意 `docker` 群組的權限等同 root。batch 工作（`u50_batch`）會把帳號移出 `render` 群組，改由 `job_grabber.py` 以管理帳號 sudo 執行 make。
 - sshd 需同時監聽 22（外部經 router `1N00:1N99 → 22` 連入）及 1N00（HLS00 在內網直接連線，見「Server IP 分配」的注意事項）。以 HLS01 為例，在 `/etc/ssh/sshd_config` 加入以下兩行後執行 `sudo systemctl restart ssh`：
 
 ```
