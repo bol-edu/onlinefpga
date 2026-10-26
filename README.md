@@ -266,7 +266,7 @@ collection-4--1739418379110125285.wt  index-3--1739418379110125285.wt  journal  
 
 ---
 
-### 3-1-5. 安裝 MongoDB Compass GUI 工具及連線 MongoDB (選項非必要)
+### 3-1-5. 安裝 MongoDB Compass GUI 工具及連線 MongoDB (建議)
 
 到[官網](https://www.mongodb.com/products/tools/compass)找到最新支援 Ubuntu 64-bit 的版本（以下以 1.49.2 為例）：
 
@@ -292,7 +292,7 @@ mongodb://172.17.0.2:27017
 
 ---
 
-### 3-1-6. 建立 MongoDB 的表格及測試 (選項非必要)
+### 3-1-6. 建立 MongoDB 的表格及測試 (建議)
 
 在 MongoDB Compass 中：
 
