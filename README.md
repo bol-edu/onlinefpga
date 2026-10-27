@@ -1,3 +1,4 @@
+<img width="3180" height="1578" alt="onlinefpga_architecture" src="https://github.com/user-attachments/assets/709bbc0e-b150-4659-ab52-a1ce55783178" />
 # OnlineFPGA
 
 ## 計畫簡介
@@ -7,6 +8,8 @@ OnlineFPGA 是由 [Boledu 基金會](https://www.boledu.org/) 為推廣 IC 設�
 透過 OnlineFPGA 系統，使用者可以隨時遠端租用 FPGA，管理員也可以遠端管理所有 FPGA 設備。系統提供 Web/SSH 連線資訊提供線上 FPGA 使用服務，已註冊的使用者可在限期內租用 FPGA，並在選擇的目標開發板上進行設計驗證。
 
 從 2022 年底到 2025 年底，已累計約 600 個註冊使用者、數千次的登入使用。
+
+![arch](https://github.com/user-attachments/assets/84b88c8d-0d2e-4d15-8774-1061de2c09bb)
 
 **OnlineFPGA 管理系統主要特性：**
 
