@@ -8,7 +8,7 @@ OnlineFPGA 是由 [Boledu 基金會](https://www.boledu.org/) 為推廣 IC 設�
 
 從 2022 年底到 2025 年底，已累計約 600 個註冊使用者、數千次的登入使用。
 
-![arch](https://github.com/user-attachments/assets/709bbc0e-b150-4659-ab52-a1ce55783178)
+![arch](https://github.com/user-attachments/assets/709bbc0e-b150-4659-ab52-a1ce55783178)+
 
 **OnlineFPGA 管理系統主要特性：**
 
@@ -183,10 +183,20 @@ sudo chmod +x /opt/labManageKit/*.sh /opt/labManageKit/utility/*.sh
 ## 3-1. 管理伺服器設置
 本章節腳本範例中使用 `hls00-passwd` 作為管理伺服器的 sudo 密碼佔位符，實際部署時**務必替換為您自行設定的實際密碼**，並確認腳本中所有出現 `hls00-passwd` 的位置皆已更新（`start_docker_boledudb.sh`、`sync_db.sh`、`sync_onlinefpga.sh`、`utility/cleandb.sh` 及 3-1-8 的 crontab），可用 `grep -rn 'hls00-passwd' /opt/labManageKit` 確認。FPGA 伺服器的 `hls01-passwd` ~ `hls05-passwd` 則在 `sync_hlsclient.sh` 及 `config.py` 的 `U50UserPassWordList` 中替換。
 
-管理伺服器 HLS00 的 sshd 需監聽 port 1000（router 外部 1000:1099 轉到 HLS00 的同一個 port，使用者以 `ssh boleduuser@<external_ip> -p 1000` 登入）。在 `/etc/ssh/sshd_config` 設定以下一行後執行 `sudo systemctl restart ssh`，可用 `sudo sshd -T | grep -i '^port'` 確認；若內網也要用 22 登入，可另加 `Port 22`（非必要）：
+管理伺服器 HLS00 的 sshd 需監聽 port 1000（router 外部 1000:1099 轉到 HLS00 的同一個 port，使用者以 `ssh boleduuser@<external_ip> -p 1000` 登入）。設定方式如下：
 
-```
-Port 1000
+```bash
+sudo apt install -y openssh-server        # Ubuntu 桌面版預設沒有安裝 SSH 伺服器
+sudo nano /etc/ssh/sshd_config            # 設定 Port 1000（內網也要用 22 登入時另加一行 Port 22，非必要）
+# Ubuntu 20.04 / 22.04：
+sudo systemctl restart ssh
+# Ubuntu 24.04（sshd 由 ssh.socket 啟動，只 restart ssh 不會套用新 port）：
+sudo systemctl daemon-reload
+sudo systemctl restart ssh.socket
+# 確認實際監聽的 port，應看到 0.0.0.0:1000
+sudo ss -tlnp | grep sshd
+# 有啟用 ufw 防火牆時（sudo ufw status 顯示 active）才需要：
+sudo ufw allow 1000/tcp
 ```
 
 ### 3-1-1. 安裝 Docker
@@ -577,10 +587,20 @@ Vitis/XRT 設定檔案範例路徑（若系統安裝路徑不同，需對應修�
 
 - 主機名稱需為 `HLS01` ~ `HLS05`，管理帳號為 `hls01` ~ `hls05`。`manage_user.py` 及 `u50_tenant_util.py` 由 hostname 取得編號，再到 `config.py` 的 `U50UserPassWordList` 找出含該編號的密碼，所以各台的 sudo 密碼字串需包含自己的編號（例如 `hls01-passwd` 含 `01`）。
 - 群組：`manage_user.py` 第一次建立 U50 互動租用（`u50_validation`）的專案帳號時，會把帳號加入 `render` 及 `docker` 群組（`config.py` 的 `U50DevGroup`、`U50DockerGroup`）。`render` 讓專案帳號能存取 `/dev/dri/render*`，也就是 U50 卡；`docker` 讓專案帳號不需 sudo 就能執行 Docker 容器（例如 Vitis AI 的開發容器）。沒有安裝 Docker 時不會有 `docker` 群組，只有加入群組這一步會失敗，帳號仍會建立；租戶需要 Docker 時才需安裝 Docker。注意 `docker` 群組的權限等同 root。batch 工作（`u50_batch`）會把帳號移出 `render` 群組，改由 `job_grabber.py` 以管理帳號 sudo 執行 make。
-- sshd 需監聽自己的 port：外部經 router 轉到同一個 port，HLS00 在內網也直接連這個 port（見「Server IP 分配」的注意事項）。以 HLS01 為例，在 `/etc/ssh/sshd_config` 設定以下一行後執行 `sudo systemctl restart ssh`（HLS02 為 `Port 1200` … HLS05 為 `Port 1500`），可用 `sudo sshd -T | grep -i '^port'` 確認；若內網也要用 22 登入，可另加 `Port 22`（非必要）：
+- sshd 需監聽自己的 port：外部經 router 轉到同一個 port，HLS00 在內網也直接連這個 port（見「Server IP 分配」的注意事項）。設定方式同 3-1 的 HLS00，以 HLS01 為例（HLS02 為 1200 … HLS05 為 1500）：
 
-```
-Port 1100
+```bash
+sudo apt install -y openssh-server        # Ubuntu 桌面版預設沒有安裝 SSH 伺服器
+sudo nano /etc/ssh/sshd_config            # 設定 Port 1100（內網也要用 22 登入時另加一行 Port 22，非必要）
+# Ubuntu 20.04 / 22.04：
+sudo systemctl restart ssh
+# Ubuntu 24.04（sshd 由 ssh.socket 啟動，只 restart ssh 不會套用新 port）：
+sudo systemctl daemon-reload
+sudo systemctl restart ssh.socket
+# 確認實際監聽的 port，應看到 0.0.0.0:1100
+sudo ss -tlnp | grep sshd
+# 有啟用 ufw 防火牆時（sudo ufw status 顯示 active）才需要：
+sudo ufw allow 1100/tcp
 ```
 
 - 掛載 NAS 到 `/mnt/HLSNAS`（設定方式同 3-1-3 c）。
