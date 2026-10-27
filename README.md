@@ -8,8 +8,6 @@ OnlineFPGA 是由 [Boledu 基金會](https://www.boledu.org/) 為推廣 IC 設�
 
 從 2022 年底到 2025 年底，已累計約 600 個註冊使用者、數千次的登入使用。
 
-![arch](https://github.com/user-attachments/assets/7ec83975-e36d-4036-894d-a05c20d3cc60)
-
 **OnlineFPGA 管理系統主要特性：**
 
 - 限制每位使用者同時間只能租用一個 FPGA
@@ -55,18 +53,30 @@ OnlineFPGA 對外提供一個 IP address，透過 router port forwarding 的不�
 
 #### Server IP 分配
 
-伺服器透過 SSH 連線，外部使用者以 `ssh <user>@<external_ip> -p <external_port>` 連入（例如 `-p 1000` 連到 HLS00 的 port 22）。
+伺服器透過 SSH 連線，外部使用者以 `ssh <user>@<external_ip> -p <external_port>` 連入（例如 `-p 1000` 連到 HLS00 的 port 1000）。
 
 | 名稱 | LAN IP | External Port | Internal Port | AnyDesk |
 |:---:|:---:|:---:|:---:|:---:|
-| HLS00 | 192.168.1.10 | 1000:1099 | 22 | 100000001 |
-| HLS01 | 192.168.1.11 | 1100:1199 | 22 | 100000002 |
-| HLS02 | 192.168.1.12 | 1200:1299 | 22 | 100000003 |
-| HLS03 | 192.168.1.13 | 1300:1399 | 22 | 100000004 |
-| HLS04 | 192.168.1.14 | 1400:1499 | 22 | 100000005 |
-| HLS05 | 192.168.1.15 | 1500:1599 | 22 | 100000006 |
+| HLS00 | 192.168.1.10 | 1000:1099 |  | 100000001 |
+| HLS01 | 192.168.1.11 | 1100:1199 |  | 100000002 |
+| HLS02 | 192.168.1.12 | 1200:1299 |  | 100000003 |
+| HLS03 | 192.168.1.13 | 1300:1399 |  | 100000004 |
+| HLS04 | 192.168.1.14 | 1400:1499 |  | 100000005 |
+| HLS05 | 192.168.1.15 | 1500:1599 |  | 100000006 |
 
-> **注意：** 上表是外部連線經 router 的對應。管理伺服器 HLS00 在內網是直接以 `192.168.1.1N:1N00`（HLS01 為 `192.168.1.11:1100`）連到 HLS01 ~ HLS05（`monitord.py` 的 nc / SSH 與 `sync_hlsclient.sh` 的 scp），不經過 router，所以 HLS01 ~ HLS05 的 sshd 除了 22 之外也要監聽 1N00（見 3-2）。
+> **注意：** Internal Port 空白表示 router 轉到與 External Port 相同的 port，例如外部 1500 → `192.168.1.15:1500`。管理伺服器 HLS00 在內網也是直接連 HLS01 ~ HLS05 的同一個 port（`monitord.py` 的 nc / SSH 與 `sync_hlsclient.sh` 的 scp），例如 HLS01 為 `192.168.1.11:1100`、HLS05 為 `192.168.1.15:1500`，不經過 router。所以各台 sshd 只需監聽自己的 port：HLS00 為 `Port 1000`（見 3-1）、HLS01 為 `Port 1100` … HLS05 為 `Port 1500`（見 3-2）。
+>
+> 連線路徑範例：
+>
+> - 使用者從外部連 1000，router 轉到 `192.168.1.10:1000`，進到 HLS00。
+> - 使用者租到 U50（例如 `u50_05`）後連 1500，router 轉到 `192.168.1.15:1500`，進到 HLS05。
+> - `monitord.py` 和 `sync_hlsclient.sh` 在內網直接連 `192.168.1.15:1500`，不經過 router。
+>
+> 可在 HLS00 上確認 HLS01 ~ HLS05 的 sshd 都有監聽對應的 port，每台都顯示 `succeeded` 即正常；若某台失敗，該台 U50 在設備列表會顯示 unknown，`sync_hlsclient.sh` 的 scp 也會失敗：
+>
+> ```bash
+> for n in 1 2 3 4 5; do nc -zv -w 3 192.168.1.1$n 1${n}00; done
+> ```
 
 #### PYNQ-Z2 IP 分配
 
@@ -170,6 +180,12 @@ sudo chmod +x /opt/labManageKit/*.sh /opt/labManageKit/utility/*.sh
 
 ## 3-1. 管理伺服器設置
 本章節腳本範例中使用 `hls00-passwd` 作為管理伺服器的 sudo 密碼佔位符，實際部署時**務必替換為您自行設定的實際密碼**，並確認腳本中所有出現 `hls00-passwd` 的位置皆已更新（`start_docker_boledudb.sh`、`sync_db.sh`、`sync_onlinefpga.sh`、`utility/cleandb.sh` 及 3-1-8 的 crontab），可用 `grep -rn 'hls00-passwd' /opt/labManageKit` 確認。FPGA 伺服器的 `hls01-passwd` ~ `hls05-passwd` 則在 `sync_hlsclient.sh` 及 `config.py` 的 `U50UserPassWordList` 中替換。
+
+管理伺服器 HLS00 的 sshd 需監聽 port 1000（router 外部 1000:1099 轉到 HLS00 的同一個 port，使用者以 `ssh boleduuser@<external_ip> -p 1000` 登入）。在 `/etc/ssh/sshd_config` 設定以下一行後執行 `sudo systemctl restart ssh`，可用 `sudo sshd -T | grep -i '^port'` 確認；若內網也要用 22 登入，可另加 `Port 22`（非必要）：
+
+```
+Port 1000
+```
 
 ### 3-1-1. 安裝 Docker
 
@@ -559,10 +575,9 @@ Vitis/XRT 設定檔案範例路徑（若系統安裝路徑不同，需對應修�
 
 - 主機名稱需為 `HLS01` ~ `HLS05`，管理帳號為 `hls01` ~ `hls05`。`manage_user.py` 及 `u50_tenant_util.py` 由 hostname 取得編號，再到 `config.py` 的 `U50UserPassWordList` 找出含該編號的密碼，所以各台的 sudo 密碼字串需包含自己的編號（例如 `hls01-passwd` 含 `01`）。
 - 群組：`manage_user.py` 第一次建立 U50 互動租用（`u50_validation`）的專案帳號時，會把帳號加入 `render` 及 `docker` 群組（`config.py` 的 `U50DevGroup`、`U50DockerGroup`）。`render` 讓專案帳號能存取 `/dev/dri/render*`，也就是 U50 卡；`docker` 讓專案帳號不需 sudo 就能執行 Docker 容器（例如 Vitis AI 的開發容器）。沒有安裝 Docker 時不會有 `docker` 群組，只有加入群組這一步會失敗，帳號仍會建立；租戶需要 Docker 時才需安裝 Docker。注意 `docker` 群組的權限等同 root。batch 工作（`u50_batch`）會把帳號移出 `render` 群組，改由 `job_grabber.py` 以管理帳號 sudo 執行 make。
-- sshd 需同時監聽 22（外部經 router `1N00:1N99 → 22` 連入）及 1N00（HLS00 在內網直接連線，見「Server IP 分配」的注意事項）。以 HLS01 為例，在 `/etc/ssh/sshd_config` 加入以下兩行後執行 `sudo systemctl restart ssh`：
+- sshd 需監聽自己的 port：外部經 router 轉到同一個 port，HLS00 在內網也直接連這個 port（見「Server IP 分配」的注意事項）。以 HLS01 為例，在 `/etc/ssh/sshd_config` 設定以下一行後執行 `sudo systemctl restart ssh`（HLS02 為 `Port 1200` … HLS05 為 `Port 1500`），可用 `sudo sshd -T | grep -i '^port'` 確認；若內網也要用 22 登入，可另加 `Port 22`（非必要）：
 
 ```
-Port 22
 Port 1100
 ```
 
